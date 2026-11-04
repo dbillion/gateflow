@@ -1,0 +1,2805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gateflow — Sanjai International Airport Operations 3D</title>
+  <!-- Inline SVG Favicon (prevents 404) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+
+  <style>
+    :root {
+      --accent: #FF6A1A;
+      --accent-glow: rgba(255, 106, 26, 0.45);
+      --bg-glass: rgba(18, 22, 31, 0.82);
+      --bg-glass-hover: rgba(28, 33, 46, 0.92);
+      --border-glass: rgba(255, 255, 255, 0.14);
+      --border-accent: rgba(255, 106, 26, 0.55);
+      --text-primary: #F3F4F6;
+      --text-secondary: #9CA3AF;
+      --text-muted: #6B7280;
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --status-green: #10B981;
+      --status-orange: #F59E0B;
+      --status-blue: #3B82F6;
+      --status-red: #EF4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0F172A;
+      font-family: var(--font-stack);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      outline: none;
+    }
+
+    /* Glass Panels */
+    .glass {
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+      pointer-events: auto !important;
+      z-index: 10;
+      transition: border-color 0.2s ease;
+    }
+
+    .glass:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* TOP BAR */
+    #top-bar {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      gap: 12px;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #FF6A1A, #FF944D);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .brand-text h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-text span {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Search Box */
+    .search-box {
+      position: relative;
+      width: 220px;
+      pointer-events: auto;
+    }
+
+    .search-box input {
+      width: 100%;
+      height: 34px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--border-glass);
+      border-radius: 8px;
+      padding: 0 10px 0 34px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+      width: 260px;
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 10px;
+      top: 9px;
+      width: 15px;
+      height: 15px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    /* Area Switcher */
+    .nav-pills {
+      display: flex;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+      pointer-events: auto;
+    }
+
+    .nav-btn {
+      padding: 6px 13px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      pointer-events: auto !important;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 10px var(--accent-glow);
+      font-weight: 600;
+    }
+
+    /* Tools */
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .select-dropdown {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-glass);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+      pointer-events: auto !important;
+    }
+
+    .select-dropdown option {
+      background: #1e2430;
+      color: #fff;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border-glass);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      pointer-events: auto !important;
+      position: relative;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .icon-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .badge-dot {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 7px;
+      height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    .live-clock {
+      font-family: monospace;
+      font-size: 13px;
+      color: #FBBF24;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+      border: 1px solid rgba(251, 191, 36, 0.25);
+    }
+
+    /* KPI ROW */
+    #kpi-row {
+      position: absolute;
+      top: 80px;
+      left: 14px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .kpi-card {
+      padding: 10px 14px;
+      min-width: 135px;
+      cursor: pointer;
+      pointer-events: auto !important;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+
+    .kpi-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 3px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .kpi-delta {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--status-green);
+    }
+
+    /* RIGHT DETAIL PANEL */
+    #detail-panel {
+      position: absolute;
+      top: 80px;
+      right: 14px;
+      width: 320px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border-glass);
+      padding-bottom: 10px;
+    }
+
+    .detail-title h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .detail-title p {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--status-green);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    /* LIVE CCTV / SCREEN FEED CANVAS */
+    .cctv-screen-box {
+      width: 100%;
+      height: 125px;
+      background: #090D16;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #cctv-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .cctv-overlay {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      font-size: 9px;
+      font-family: monospace;
+      color: #10B981;
+    }
+
+    .rec-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #EF4444;
+      font-weight: 700;
+    }
+
+    .rec-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #EF4444;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .cctv-controls {
+      position: absolute;
+      bottom: 6px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .cam-btn {
+      flex: 1;
+      font-size: 8px;
+      padding: 3px 0;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #9CA3AF;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      pointer-events: auto !important;
+    }
+
+    .cam-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .flight-route-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      border: 1px dashed var(--border-glass);
+    }
+
+    .route-node {
+      text-align: center;
+    }
+
+    .route-node .code {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .route-node .city {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .telemetry-item {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .telemetry-item .label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .telemetry-item .val {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 1px;
+    }
+
+    .panel-action-btn {
+      width: 100%;
+      height: 36px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px var(--accent-glow);
+      pointer-events: auto !important;
+    }
+
+    .panel-action-btn:hover {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
+    }
+
+    /* BOTTOM LEFT TURNAROUND TRACKER */
+    #turnaround-panel {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      width: 480px;
+      padding: 12px 16px;
+    }
+
+    .tracker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .tracker-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .countdown-tag {
+      background: rgba(255, 106, 26, 0.18);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .step-track {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .step-track::before {
+      content: "";
+      position: absolute;
+      top: 12px;
+      left: 15px;
+      right: 15px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.12);
+      z-index: 0;
+    }
+
+    .step-item {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      width: 58px;
+      text-align: center;
+    }
+
+    .step-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #1e2430;
+      border: 2px solid var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: all 0.3s;
+    }
+
+    .step-item.done .step-circle {
+      background: var(--status-green);
+      border-color: var(--status-green);
+      color: #fff;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
+
+    .step-item.active .step-circle {
+      background: var(--accent);
+      border-color: #fff;
+      color: #fff;
+      box-shadow: 0 0 10px var(--accent-glow);
+      transform: scale(1.15);
+    }
+
+    .step-label {
+      font-size: 9px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .step-item.active .step-label {
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .step-time {
+      font-size: 8px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    /* BOTTOM TABBED LIVE TABLE */
+    #live-table-panel {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      width: 520px;
+      padding: 12px 14px;
+      max-height: 230px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border-glass);
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      pointer-events: auto;
+    }
+
+    .table-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      pointer-events: auto !important;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .table-tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .table-tab-btn.active {
+      background: rgba(255, 106, 26, 0.18);
+      color: var(--accent);
+    }
+
+    .table-scroll {
+      overflow-y: auto;
+      max-height: 155px;
+      pointer-events: auto;
+    }
+
+    .table-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .table-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .ops-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 11px;
+    }
+
+    .ops-table th {
+      color: var(--text-muted);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 5px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ops-table td {
+      padding: 6px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .ops-table tr {
+      cursor: pointer;
+      pointer-events: auto !important;
+      transition: background 0.15s;
+    }
+
+    .ops-table tr:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    .ops-table tr.selected {
+      background: rgba(255, 106, 26, 0.18);
+      border-left: 2px solid var(--accent);
+    }
+
+    /* 3D FLOATING HUD TAG */
+    #hud-anchor {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 5;
+      display: none;
+      transform: translate(-50%, -100%);
+      transition: opacity 0.2s;
+    }
+
+    .hud-tag {
+      background: rgba(18, 22, 31, 0.92);
+      border: 1px solid var(--accent);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+      white-space: nowrap;
+    }
+
+    .hud-tag::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px 5px 0 5px;
+      border-style: solid;
+      border-color: var(--accent) transparent transparent transparent;
+    }
+
+    .hud-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulseGlow 1.5s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 0 var(--accent-glow); }
+      70% { transform: scale(1.2); box-shadow: 0 0 0 8px rgba(255, 106, 26, 0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 106, 26, 0); }
+    }
+
+    /* Notifications Toast */
+    #alert-toast {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(50px);
+      background: rgba(18, 22, 31, 0.94);
+      border: 1px solid var(--accent);
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #fff;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    }
+
+    #alert-toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 900px) {
+      #detail-panel {
+        display: none;
+      }
+      #turnaround-panel {
+        width: calc(100% - 28px);
+        bottom: 74px;
+      }
+      #live-table-panel {
+        display: none;
+      }
+      .search-box {
+        display: none;
+      }
+      .nav-pills {
+        display: none;
+      }
+      #kpi-row {
+        gap: 6px;
+      }
+      .kpi-card {
+        min-width: 100px;
+        padding: 6px 10px;
+      }
+      .kpi-value {
+        font-size: 16px;
+      }
+    }
+  </style>
+
+  <!-- Local Libraries with CDN Fallback -->
+  <script src="js/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+  <script src="js/OrbitControls.js"></script>
+  <script>
+    if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- WebGL Canvas -->
+  <div id="webgl-canvas"></div>
+
+  <!-- FLOATING HUD TARGET -->
+  <div id="hud-anchor">
+    <div class="hud-tag">
+      <div class="hud-dot"></div>
+      <span id="hud-text">VT-EXA (A320neo)</span>
+    </div>
+  </div>
+
+  <!-- TOP BAR -->
+  <div id="top-bar" class="glass">
+    <div class="logo-group" onclick="window.flyToArea('overview')">
+      <div class="brand-mark">✈</div>
+      <div class="brand-text">
+        <h1>Gateflow <span style="background:var(--accent); color:#fff; padding:1px 5px; border-radius:4px; font-size:9px;">LIVE</span></h1>
+        <span>Sanjai International Airport • SNJ</span>
+      </div>
+    </div>
+
+    <!-- Live Search -->
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="obj-search" placeholder="Search flight, stand, vehicle..." oninput="window.handleSearch(this.value)">
+    </div>
+
+    <!-- Area Switcher -->
+    <div class="nav-pills">
+      <button class="nav-btn active" onclick="window.flyToArea('overview', this)">Overview</button>
+      <button class="nav-btn" onclick="window.flyToArea('terminal', this)">Terminal</button>
+      <button class="nav-btn" onclick="window.flyToArea('runway', this)">Runway</button>
+      <button class="nav-btn" onclick="window.flyToArea('cargo', this)">Cargo</button>
+      <button class="nav-btn" onclick="window.flyToArea('hangar', this)">Hangar</button>
+      <button class="nav-btn" onclick="window.flyToArea('landside', this)">Landside</button>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="tool-group">
+      <!-- Season / Weather Selector -->
+      <select id="season-select" class="select-dropdown" onchange="window.changeSeason(this.value)">
+        <option value="summer">☀️ Summer (Clear)</option>
+        <option value="monsoon">🌧️ Monsoon (Rain & Light)</option>
+        <option value="winter">🌫️ Winter (Dense Fog)</option>
+        <option value="snow">❄️ Snow & De-icing</option>
+      </select>
+
+      <!-- Day / Night Toggle -->
+      <button class="icon-btn" title="Toggle Day / Night" onclick="window.toggleDayNight()">
+        <span id="day-night-icon">🌙</span>
+      </button>
+
+      <!-- Alert Bell -->
+      <button class="icon-btn" title="Operations Alerts" onclick="window.triggerNotification('All stands operating normally. Runway 09L active.')">
+        🔔
+        <div class="badge-dot"></div>
+      </button>
+
+      <!-- Live Clock -->
+      <div class="live-clock" id="clock-display">18:24:12</div>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div id="kpi-row">
+    <div class="kpi-card glass" onclick="window.filterTable('Flights')">
+      <div class="kpi-header">✈ Flights Today</div>
+      <div class="kpi-value">142 <span class="kpi-delta">+12%</span></div>
+    </div>
+    <div class="kpi-card glass" onclick="window.filterTable('Stands')">
+      <div class="kpi-header">👥 Passengers</div>
+      <div class="kpi-value">24,580 <span class="kpi-delta">+8%</span></div>
+    </div>
+    <div class="kpi-card glass" onclick="window.flyToArea('cargo')">
+      <div class="kpi-header">📦 Cargo (Tonnes)</div>
+      <div class="kpi-value">612 <span class="kpi-delta">+15%</span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT DETAIL PANEL -->
+  <div id="detail-panel" class="glass">
+    <div class="detail-header">
+      <div class="detail-title">
+        <h3 id="dp-title">AI-742 (A320neo)</h3>
+        <p id="dp-subtitle">Air India • Reg: VT-EXA</p>
+      </div>
+      <span class="status-pill" id="dp-status">ON BLOCK</span>
+    </div>
+
+    <!-- LIVE CCTV APRON SCREEN (Procedural Canvas) -->
+    <div class="cctv-screen-box">
+      <canvas id="cctv-canvas"></canvas>
+      <div class="cctv-overlay">
+        <span id="cctv-cam-title">CAM 03 • STAND A3</span>
+        <div class="rec-badge">
+          <div class="rec-dot"></div>
+          <span>REC</span>
+        </div>
+      </div>
+      <div class="cctv-controls">
+        <button class="cam-btn active" onclick="window.switchCameraFeed(0, this)">CAM 1 (A3)</button>
+        <button class="cam-btn" onclick="window.switchCameraFeed(1, this)">CAM 2 (RWY)</button>
+        <button class="cam-btn" onclick="window.switchCameraFeed(2, this)">CAM 3 (TWR)</button>
+        <button class="cam-btn" onclick="window.switchCameraFeed(3, this)">CAM 4 (CARGO)</button>
+      </div>
+    </div>
+
+    <!-- Flight Route -->
+    <div class="flight-route-box">
+      <div class="route-node">
+        <div class="code" id="dp-origin">BLR</div>
+        <div class="city">Bengaluru</div>
+        <div style="font-size:9px; color:#888; margin-top:2px;" id="dp-sched-arr">STA 18:10</div>
+      </div>
+      <div style="color:var(--accent); font-weight:700;">✈ ────►</div>
+      <div class="route-node">
+        <div class="code" id="dp-dest">SNJ</div>
+        <div class="city">Sanjai Int'l</div>
+        <div style="font-size:9px; color:#888; margin-top:2px;" id="dp-sched-dep">STD 18:55</div>
+      </div>
+    </div>
+
+    <!-- Live Telemetry -->
+    <div class="telemetry-grid">
+      <div class="telemetry-item">
+        <div class="label">Assigned Stand</div>
+        <div class="val" id="dp-stand">Stand A3</div>
+      </div>
+      <div class="telemetry-item">
+        <div class="label">Turnaround</div>
+        <div class="val" style="color:var(--accent);" id="dp-countdown">T-12 min</div>
+      </div>
+      <div class="telemetry-item">
+        <div class="label">Fuel Onboard</div>
+        <div class="val" id="dp-fuel">14.2 / 18.0 t</div>
+      </div>
+      <div class="telemetry-item">
+        <div class="label">Pax Load</div>
+        <div class="val" id="dp-pax">168 / 180</div>
+      </div>
+      <div class="telemetry-item">
+        <div class="label">Ground Speed</div>
+        <div class="val" id="dp-speed">0 kts</div>
+      </div>
+      <div class="telemetry-item">
+        <div class="label">Altitude</div>
+        <div class="val" id="dp-alt">24 ft (GND)</div>
+      </div>
+    </div>
+
+    <button class="panel-action-btn" id="btn-camera-follow" onclick="window.toggleCameraFollow()">
+      <span>🎯 Follow with Camera</span>
+    </button>
+  </div>
+
+  <!-- BOTTOM LEFT: TURNAROUND TRACKER -->
+  <div id="turnaround-panel" class="glass">
+    <div class="tracker-header">
+      <div class="tracker-title">
+        <span>⏱️ Turnaround Tracker</span>
+        <span style="font-size:10px; color:var(--text-muted); font-weight:normal;" id="tt-flight-tag">AI-742 • A320neo • Stand A3</span>
+      </div>
+      <div class="countdown-tag" id="tt-time-tag">T - 12 min</div>
+    </div>
+
+    <div class="step-track">
+      <div class="step-item done" id="step-0">
+        <div class="step-circle">✓</div>
+        <div class="step-label">On Block</div>
+        <div class="step-time">18:12</div>
+      </div>
+      <div class="step-item done" id="step-1">
+        <div class="step-circle">✓</div>
+        <div class="step-label">Deboard</div>
+        <div class="step-time">18:14</div>
+      </div>
+      <div class="step-item active" id="step-2">
+        <div class="step-circle">3</div>
+        <div class="step-label">Clean & Cater</div>
+        <div class="step-time">18:18</div>
+      </div>
+      <div class="step-item" id="step-3">
+        <div class="step-circle">4</div>
+        <div class="step-label">Fuel</div>
+        <div class="step-time">18:28</div>
+      </div>
+      <div class="step-item" id="step-4">
+        <div class="step-circle">5</div>
+        <div class="step-label">Board</div>
+        <div class="step-time">18:33</div>
+      </div>
+      <div class="step-item" id="step-5">
+        <div class="step-circle">6</div>
+        <div class="step-label">Pushback</div>
+        <div class="step-time">18:43</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM RIGHT: TABBED LIVE TABLE -->
+  <div id="live-table-panel" class="glass">
+    <div class="table-tabs">
+      <button class="table-tab-btn active" onclick="window.switchTableTab('Stands', this)">Stands (5)</button>
+      <button class="table-tab-btn" onclick="window.switchTableTab('Vehicles', this)">Vehicles (12)</button>
+      <button class="table-tab-btn" onclick="window.switchTableTab('Flights', this)">Flights (10)</button>
+    </div>
+
+    <div class="table-scroll" id="table-content-area">
+      <!-- Injected by JavaScript -->
+    </div>
+  </div>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="alert-toast">
+    <span style="color:var(--accent); font-size:16px;">⚡</span>
+    <span id="toast-msg">Welcome to Sanjai International Airport Apron Control</span>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION -->
+  <script>
+    /* ==========================================================================
+       GATEFLOW — AIRPORT OPERATIONS 3D ENGINE
+       ========================================================================== */
+
+    // App State
+    const AppState = {
+      isNight: false,
+      season: 'summer', // summer, monsoon, winter, snow
+      selectedObject: null,
+      cameraFollowing: false,
+      isCameraTransitioning: false,
+      cameraTargetPos: new THREE.Vector3(90, 85, 110),
+      cameraTargetLook: new THREE.Vector3(0, 0, 0),
+      currentTab: 'Stands',
+      cctvFeedIdx: 0
+    };
+
+    // World Palette & Config
+    const PALETTE = {
+      accent: 0xFF6A1A,
+      tarmac: 0x2A2E38,
+      tarmacMarkings: 0xFBBF24,
+      runway: 0x23262E,
+      grass: 0x475543,
+      clayWall: 0xF7F5F0,
+      glassBlue: 0x7DD3FC,
+      lightsGreen: 0x10B981,
+      lightsBlue: 0x38BDF8,
+      lightsRed: 0xEF4444
+    };
+
+    // Three.js Components
+    let scene, camera, renderer, controls;
+    let dirLight, ambientLight, hemiLight;
+    let runwayLightPoints = [], taxiwayLightPoints = [], floodLights = [];
+    let particleSystem, particleGeo, particleMat;
+    let lightningLight;
+
+    // Simulation Entities & Lookup Registries
+    const entityRegistry = new Map();
+    const aircraftList = [];
+    const vehicleList = [];
+    const standList = [];
+    const clickableObjects = [];
+
+    // Area Camera Presets
+    const AREA_VIEWS = {
+      overview: { pos: [90, 85, 110], look: [0, 0, 0] },
+      terminal: { pos: [0, 36, 46], look: [0, 0, 0] },
+      runway: { pos: [-80, 26, 62], look: [-80, 0, -20] },
+      cargo: { pos: [78, 30, -32], look: [70, 0, -40] },
+      hangar: { pos: [-68, 30, -32], look: [-60, 0, -40] },
+      landside: { pos: [0, 32, 86], look: [0, 0, 40] }
+    };
+
+    /* --------------------------------------------------------------------------
+       INIT SCENE & RENDERER
+       -------------------------------------------------------------------------- */
+    function init() {
+      const container = document.getElementById('webgl-canvas');
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // 1. Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xD9E2EC);
+      scene.fog = new THREE.FogExp2(0xD9E2EC, 0.0035);
+
+      // 2. Camera (Isometric Perspective)
+      camera = new THREE.PerspectiveCamera(38, width / height, 0.5, 1000);
+      camera.position.set(AREA_VIEWS.overview.pos[0], AREA_VIEWS.overview.pos[1], AREA_VIEWS.overview.pos[2]);
+
+      // 3. Renderer with Soft Shadows & Tone Mapping
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      container.appendChild(renderer.domElement);
+
+      // 4. OrbitControls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxPolarAngle = Math.PI / 2.08;
+      controls.minDistance = 15;
+      controls.maxDistance = 280;
+      controls.target.set(0, 0, 0);
+
+      // User interaction breaks camera auto-transition
+      controls.addEventListener('start', () => {
+        AppState.isCameraTransitioning = false;
+        AppState.cameraFollowing = false;
+        const btn = document.getElementById('btn-camera-follow');
+        if (btn) {
+          btn.style.background = 'var(--accent)';
+          btn.innerHTML = '<span>🎯 Follow with Camera</span>';
+        }
+      });
+
+      // 5. Lighting Setup
+      setupLighting();
+
+      // 6. Build World Geometry
+      buildAirportGround();
+      buildTerminalComplex();
+      buildControlTower();
+      buildCargoAndHangar();
+      buildLandsideForecourt();
+      buildRunwayAndLighting();
+
+      // 7. Spawn Simulation Aircraft & Ground Support Equipment
+      spawnSimulationEntities();
+
+      // 8. Setup Weather & Particles
+      setupWeatherParticles();
+
+      // 9. Interaction & Event Listeners
+      setupInteraction();
+
+      // 10. Start Live CCTV Canvas Loop
+      initCCTVFeed();
+
+      // 11. Start Clock & UI Updates
+      setInterval(updateClock, 1000);
+      renderTableData();
+
+      // Initial Selection
+      if (aircraftList.length > 0) {
+        selectEntity(aircraftList[0].userData);
+      }
+
+      // Resize
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Render Loop
+      animate();
+    }
+
+    /* --------------------------------------------------------------------------
+       LIGHTING SYSTEM
+       -------------------------------------------------------------------------- */
+    function setupLighting() {
+      hemiLight = new THREE.HemisphereLight(0xffffff, 0xd4cbb8, 0.55);
+      hemiLight.position.set(0, 80, 0);
+      scene.add(hemiLight);
+
+      dirLight = new THREE.DirectionalLight(0xfff5e6, 1.25);
+      dirLight.position.set(120, 140, 80);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 10;
+      dirLight.shadow.camera.far = 380;
+      const d = 110;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      dirLight.shadow.bias = -0.0004;
+      scene.add(dirLight);
+
+      ambientLight = new THREE.AmbientLight(0xdce6f2, 0.45);
+      scene.add(ambientLight);
+
+      lightningLight = new THREE.PointLight(0xb0d4ff, 0, 600);
+      lightningLight.position.set(0, 100, 0);
+      scene.add(lightningLight);
+    }
+
+    /* --------------------------------------------------------------------------
+       PROCEDURAL WORLD: GROUND, RUNWAY & TAXIWAYS
+       -------------------------------------------------------------------------- */
+    function buildAirportGround() {
+      const groundGeo = new THREE.PlaneGeometry(350, 260);
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: PALETTE.grass,
+        roughness: 0.9,
+        metalness: 0.05
+      });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      const apronGeo = new THREE.PlaneGeometry(160, 85);
+      const apronMat = new THREE.MeshStandardMaterial({
+        color: PALETTE.tarmac,
+        roughness: 0.82,
+        metalness: 0.1
+      });
+      const apron = new THREE.Mesh(apronGeo, apronMat);
+      apron.rotation.x = -Math.PI / 2;
+      apron.position.set(0, 0.05, 10);
+      apron.receiveShadow = true;
+      scene.add(apron);
+
+      createTaxiwayMarkings();
+    }
+
+    function createTaxiwayMarkings() {
+      const lineMat = new THREE.MeshBasicMaterial({ color: PALETTE.tarmacMarkings });
+
+      const mainTaxiLineGeo = new THREE.PlaneGeometry(150, 0.5);
+      const mainTaxiLine = new THREE.Mesh(mainTaxiLineGeo, lineMat);
+      mainTaxiLine.rotation.x = -Math.PI / 2;
+      mainTaxiLine.position.set(0, 0.07, 30);
+      scene.add(mainTaxiLine);
+
+      const standXCoords = [-50, -25, 0, 25, 50];
+      standXCoords.forEach((x, i) => {
+        const standLeadGeo = new THREE.PlaneGeometry(0.5, 22);
+        const standLead = new THREE.Mesh(standLeadGeo, lineMat);
+        standLead.rotation.x = -Math.PI / 2;
+        standLead.position.set(x, 0.07, 19);
+        scene.add(standLead);
+
+        const tBarGeo = new THREE.PlaneGeometry(6, 0.7);
+        const tBar = new THREE.Mesh(tBarGeo, lineMat);
+        tBar.rotation.x = -Math.PI / 2;
+        tBar.position.set(x, 0.07, 8);
+        scene.add(tBar);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FF6A1A';
+        ctx.fillRect(0, 0, 128, 128);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 70px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`A${i+1}`, 64, 64);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        const numPlacardGeo = new THREE.PlaneGeometry(3.2, 3.2);
+        const numPlacardMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+        const numPlacard = new THREE.Mesh(numPlacardGeo, numPlacardMat);
+        numPlacard.rotation.x = -Math.PI / 2;
+        numPlacard.position.set(x, 0.08, 2);
+        scene.add(numPlacard);
+
+        const standEntity = {
+          id: `A${i+1}`,
+          name: `Stand A${i+1}`,
+          x: x,
+          z: 8,
+          occupied: i === 2,
+          aircraft: i === 2 ? 'AI-742' : null,
+          category: 'Stand'
+        };
+        standList.push(standEntity);
+        entityRegistry.set(`A${i+1}`, standEntity);
+      });
+    }
+
+    /* --------------------------------------------------------------------------
+       RUNWAY 09L / 27R & LIGHTING
+       -------------------------------------------------------------------------- */
+    function buildRunwayAndLighting() {
+      const rwyGeo = new THREE.PlaneGeometry(280, 24);
+      const rwyMat = new THREE.MeshStandardMaterial({
+        color: PALETTE.runway,
+        roughness: 0.85,
+        metalness: 0.1
+      });
+      const runway = new THREE.Mesh(rwyGeo, rwyMat);
+      runway.rotation.x = -Math.PI / 2;
+      runway.position.set(0, 0.06, -75);
+      runway.receiveShadow = true;
+      scene.add(runway);
+
+      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+
+      for (let k = -9; k <= 9; k += 2.2) {
+        const keyGeo = new THREE.PlaneGeometry(12, 1.1);
+        const key1 = new THREE.Mesh(keyGeo, whiteMat);
+        key1.rotation.x = -Math.PI / 2;
+        key1.position.set(-126, 0.08, -75 + k);
+        scene.add(key1);
+
+        const key2 = new THREE.Mesh(keyGeo, whiteMat);
+        key2.rotation.x = -Math.PI / 2;
+        key2.position.set(126, 0.08, -75 + k);
+        scene.add(key2);
+      }
+
+      for (let x = -110; x <= 110; x += 14) {
+        const dashGeo = new THREE.PlaneGeometry(7, 0.8);
+        const dash = new THREE.Mesh(dashGeo, whiteMat);
+        dash.rotation.x = -Math.PI / 2;
+        dash.position.set(x, 0.08, -75);
+        scene.add(dash);
+      }
+
+      const lightBulbGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.35, 6);
+      const lightBulbMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+
+      for (let lx = -135; lx <= 135; lx += 12) {
+        [-87.2, -62.8].forEach(lz => {
+          const bulb = new THREE.Mesh(lightBulbGeo, lightBulbMat);
+          bulb.position.set(lx, 0.2, lz);
+          scene.add(bulb);
+          runwayLightPoints.push(bulb);
+        });
+      }
+
+      const greenBulbMat = new THREE.MeshBasicMaterial({ color: PALETTE.lightsGreen });
+      for (let lz = -86; lz <= -64; lz += 2.5) {
+        [-137, 137].forEach(lx => {
+          const gbulb = new THREE.Mesh(lightBulbGeo, greenBulbMat);
+          gbulb.position.set(lx, 0.2, lz);
+          scene.add(gbulb);
+          runwayLightPoints.push(gbulb);
+        });
+      }
+
+      buildTaxiwayLink(-70);
+      buildTaxiwayLink(70);
+    }
+
+    function buildTaxiwayLink(xOffset) {
+      const linkGeo = new THREE.PlaneGeometry(14, 55);
+      const linkMat = new THREE.MeshStandardMaterial({ color: PALETTE.tarmac, roughness: 0.85 });
+      const link = new THREE.Mesh(linkGeo, linkMat);
+      link.rotation.x = -Math.PI / 2;
+      link.position.set(xOffset, 0.05, -35);
+      link.receiveShadow = true;
+      scene.add(link);
+
+      const blueBulbMat = new THREE.MeshBasicMaterial({ color: PALETTE.lightsBlue });
+      const bulbGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.3, 6);
+      for (let z = -60; z <= -10; z += 10) {
+        [xOffset - 7.3, xOffset + 7.3].forEach(bx => {
+          const b = new THREE.Mesh(bulbGeo, blueBulbMat);
+          b.position.set(bx, 0.18, z);
+          scene.add(b);
+          taxiwayLightPoints.push(b);
+        });
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       TERMINAL BUILDING COMPLEX & 5 JET BRIDGES
+       -------------------------------------------------------------------------- */
+    function buildTerminalComplex() {
+      const terminalGroup = new THREE.Group();
+
+      const bodyGeo = new THREE.BoxGeometry(130, 9, 26);
+      const clayMat = new THREE.MeshStandardMaterial({
+        color: PALETTE.clayWall,
+        roughness: 0.75,
+        metalness: 0.05
+      });
+      const body = new THREE.Mesh(bodyGeo, clayMat);
+      body.position.set(0, 4.5, -12);
+      body.castShadow = true;
+      body.receiveShadow = true;
+      terminalGroup.add(body);
+
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: PALETTE.glassBlue,
+        metalness: 0.2,
+        roughness: 0.15,
+        transparent: true,
+        opacity: 0.75,
+        reflectivity: 0.9
+      });
+      const facadeGeo = new THREE.BoxGeometry(126, 7.5, 1.2);
+      const facade = new THREE.Mesh(facadeGeo, glassMat);
+      facade.position.set(0, 4.5, 0.5);
+      facade.castShadow = true;
+      terminalGroup.add(facade);
+
+      const roofGeo = new THREE.BoxGeometry(134, 1.4, 30);
+      const roofMat = new THREE.MeshStandardMaterial({ color: 0xE2E8F0, roughness: 0.5 });
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.set(0, 9.4, -12);
+      roof.castShadow = true;
+      terminalGroup.add(roof);
+
+      const trimGeo = new THREE.BoxGeometry(134.4, 0.5, 0.8);
+      const trimMat = new THREE.MeshBasicMaterial({ color: PALETTE.accent });
+      const trim = new THREE.Mesh(trimGeo, trimMat);
+      trim.position.set(0, 9.4, 3.2);
+      terminalGroup.add(trim);
+
+      for (let rx = -50; rx <= 50; rx += 25) {
+        const hvacGeo = new THREE.BoxGeometry(7, 2.5, 6);
+        const hvacMat = new THREE.MeshStandardMaterial({ color: 0x94A3B8, roughness: 0.8 });
+        const hvac = new THREE.Mesh(hvacGeo, hvacMat);
+        hvac.position.set(rx, 11, -12);
+        hvac.castShadow = true;
+        terminalGroup.add(hvac);
+      }
+
+      const gatePositions = [-50, -25, 0, 25, 50];
+      gatePositions.forEach((gx, idx) => {
+        const jbGroup = new THREE.Group();
+
+        const rotundaGeo = new THREE.CylinderGeometry(2, 2, 4, 12);
+        const rotunda = new THREE.Mesh(rotundaGeo, clayMat);
+        rotunda.position.set(0, 4, 0);
+        jbGroup.add(rotunda);
+
+        const bridgeGeo = new THREE.BoxGeometry(2.6, 2.8, 11);
+        const bridge = new THREE.Mesh(bridgeGeo, clayMat);
+        bridge.position.set(0, 3.5, 5.5);
+        bridge.castShadow = true;
+        jbGroup.add(bridge);
+
+        const bGlassGeo = new THREE.BoxGeometry(2.7, 1.2, 8);
+        const bGlass = new THREE.Mesh(bGlassGeo, glassMat);
+        bGlass.position.set(0, 3.7, 5.5);
+        jbGroup.add(bGlass);
+
+        const cabGeo = new THREE.BoxGeometry(3.6, 3, 3);
+        const cab = new THREE.Mesh(cabGeo, clayMat);
+        cab.position.set(0, 3.5, 11);
+        cab.castShadow = true;
+        jbGroup.add(cab);
+
+        const pylonGeo = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
+        const pylon = new THREE.Mesh(pylonGeo, new THREE.MeshStandardMaterial({ color: 0x475569 }));
+        pylon.position.set(0, 1.5, 10);
+        jbGroup.add(pylon);
+
+        jbGroup.position.set(gx, 0, 0.5);
+        terminalGroup.add(jbGroup);
+
+        const gateData = {
+          id: `A${idx + 1}`,
+          name: `Gate A${idx + 1}`,
+          category: 'Gate'
+        };
+        jbGroup.userData = gateData;
+        clickableObjects.push(cab);
+        cab.userData = gateData;
+      });
+
+      [-62, -15, 35, 62].forEach(fx => {
+        const towerGroup = new THREE.Group();
+        const poleGeo = new THREE.CylinderGeometry(0.4, 0.6, 24, 8);
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0x64748B, metalness: 0.5 });
+        const pole = new THREE.Mesh(poleGeo, poleMat);
+        pole.position.set(0, 12, 0);
+        pole.castShadow = true;
+        towerGroup.add(pole);
+
+        const rackGeo = new THREE.BoxGeometry(4.5, 1.2, 1.2);
+        const rackMat = new THREE.MeshBasicMaterial({ color: 0xFFFBEB });
+        const rack = new THREE.Mesh(rackGeo, rackMat);
+        rack.position.set(0, 24, 0);
+        towerGroup.add(rack);
+
+        const spot = new THREE.SpotLight(0xFFFBEB, 0, 85, Math.PI / 4, 0.4, 1.5);
+        spot.position.set(0, 24, 0);
+        spot.target.position.set(0, 0, 15);
+        towerGroup.add(spot);
+        towerGroup.add(spot.target);
+        floodLights.push(spot);
+
+        towerGroup.position.set(fx, 0, 1.5);
+        terminalGroup.add(towerGroup);
+      });
+
+      scene.add(terminalGroup);
+    }
+
+    /* --------------------------------------------------------------------------
+       CONTROL TOWER WITH ROTATING RADAR
+       -------------------------------------------------------------------------- */
+    let radarDish;
+    function buildControlTower() {
+      const towerGroup = new THREE.Group();
+      towerGroup.position.set(-82, 0, 8);
+
+      const clayMat = new THREE.MeshStandardMaterial({ color: PALETTE.clayWall, roughness: 0.7 });
+
+      const shaftGeo = new THREE.CylinderGeometry(3.5, 4.8, 38, 16);
+      const shaft = new THREE.Mesh(shaftGeo, clayMat);
+      shaft.position.y = 19;
+      shaft.castShadow = true;
+      towerGroup.add(shaft);
+
+      const stripeGeo = new THREE.CylinderGeometry(3.8, 3.8, 2, 16);
+      const stripeMat = new THREE.MeshBasicMaterial({ color: PALETTE.accent });
+      const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+      stripe.position.y = 30;
+      towerGroup.add(stripe);
+
+      const flangeGeo = new THREE.CylinderGeometry(7.5, 3.5, 3.5, 16);
+      const flange = new THREE.Mesh(flangeGeo, clayMat);
+      flange.position.y = 39.5;
+      towerGroup.add(flange);
+
+      const cabGlassMat = new THREE.MeshPhysicalMaterial({
+        color: 0x38BDF8,
+        metalness: 0.1,
+        roughness: 0.1,
+        transparent: true,
+        opacity: 0.85
+      });
+      const cabGeo = new THREE.CylinderGeometry(7.2, 6.8, 4.5, 16);
+      const cab = new THREE.Mesh(cabGeo, cabGlassMat);
+      cab.position.y = 43.5;
+      towerGroup.add(cab);
+
+      const troofGeo = new THREE.CylinderGeometry(8, 7.2, 1.5, 16);
+      const troof = new THREE.Mesh(troofGeo, clayMat);
+      troof.position.y = 46.5;
+      towerGroup.add(troof);
+
+      radarDish = new THREE.Group();
+      radarDish.position.y = 47.5;
+      const mastGeo = new THREE.CylinderGeometry(0.2, 0.2, 2.5, 8);
+      const mast = new THREE.Mesh(mastGeo, new THREE.MeshStandardMaterial({ color: 0x334155 }));
+      mast.position.y = 1.25;
+      radarDish.add(mast);
+
+      const barGeo = new THREE.BoxGeometry(4.2, 0.8, 0.4);
+      const barMat = new THREE.MeshBasicMaterial({ color: PALETTE.accent });
+      const bar = new THREE.Mesh(barGeo, barMat);
+      bar.position.y = 2.5;
+      radarDish.add(bar);
+      towerGroup.add(radarDish);
+
+      towerGroup.userData = {
+        id: "TOWER",
+        name: "SNJ Air Traffic Control Tower",
+        category: "Facility",
+        type: "Tower",
+        stats: "VHF 118.700 MHz • Ground 121.900 MHz"
+      };
+      clickableObjects.push(shaft);
+      shaft.userData = towerGroup.userData;
+      entityRegistry.set("TOWER", towerGroup.userData);
+
+      scene.add(towerGroup);
+    }
+
+    /* --------------------------------------------------------------------------
+       CARGO TERMINAL & MRO HANGAR
+       -------------------------------------------------------------------------- */
+    function buildCargoAndHangar() {
+      // 1. CARGO TERMINAL (East Wing)
+      const cargoGroup = new THREE.Group();
+      cargoGroup.position.set(78, 0, -32);
+
+      const whGeo = new THREE.BoxGeometry(45, 11, 28);
+      const whMat = new THREE.MeshStandardMaterial({ color: 0xE2E8F0, roughness: 0.7 });
+      const wh = new THREE.Mesh(whGeo, whMat);
+      wh.position.y = 5.5;
+      wh.castShadow = true;
+      cargoGroup.add(wh);
+
+      const doorMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.3 });
+      for (let dx = -15; dx <= 15; dx += 10) {
+        const doorGeo = new THREE.PlaneGeometry(6, 6);
+        const door = new THREE.Mesh(doorGeo, doorMat);
+        door.position.set(dx, 3.2, 14.1);
+        cargoGroup.add(door);
+      }
+
+      const uldColors = [0x3B82F6, 0xEF4444, 0x10B981, 0xF59E0B, 0x9333EA];
+      for (let ux = -18; ux <= 18; ux += 5) {
+        const stackHeight = Math.floor(Math.random() * 2) + 1;
+        for (let s = 0; s < stackHeight; s++) {
+          const uldGeo = new THREE.BoxGeometry(3.2, 2.4, 3);
+          const uldMat = new THREE.MeshStandardMaterial({
+            color: uldColors[Math.floor(Math.random() * uldColors.length)],
+            roughness: 0.5
+          });
+          const uld = new THREE.Mesh(uldGeo, uldMat);
+          uld.position.set(ux, 1.2 + s * 2.5, 19 + (s % 2) * 2);
+          uld.castShadow = true;
+          cargoGroup.add(uld);
+        }
+      }
+
+      cargoGroup.userData = {
+        id: "CARGO",
+        name: "SNJ Cargo Terminal & Logistics Hub",
+        category: "Cargo",
+        stats: "Capacity: 1,200 Tonnes • Active ULDs: 480"
+      };
+      clickableObjects.push(wh);
+      wh.userData = cargoGroup.userData;
+      entityRegistry.set("CARGO", cargoGroup.userData);
+      scene.add(cargoGroup);
+
+      // 2. OPEN MRO HANGAR (West Wing)
+      const hangarGroup = new THREE.Group();
+      hangarGroup.position.set(-68, 0, -32);
+
+      const hwallMat = new THREE.MeshStandardMaterial({ color: PALETTE.clayWall, roughness: 0.7 });
+      const bwall = new THREE.Mesh(new THREE.BoxGeometry(36, 14, 1.5), hwallMat);
+      bwall.position.set(0, 7, -12);
+      bwall.castShadow = true;
+      hangarGroup.add(bwall);
+
+      const lwall = new THREE.Mesh(new THREE.BoxGeometry(1.5, 14, 25), hwallMat);
+      lwall.position.set(-18, 7, 0.5);
+      hangarGroup.add(lwall);
+
+      const rwall = new THREE.Mesh(new THREE.BoxGeometry(1.5, 14, 25), hwallMat);
+      rwall.position.set(18, 7, 0.5);
+      hangarGroup.add(rwall);
+
+      const hroof = new THREE.Mesh(new THREE.BoxGeometry(38, 2, 27), new THREE.MeshStandardMaterial({ color: 0xCBD5E1 }));
+      hroof.position.set(0, 14.5, 0.5);
+      hroof.castShadow = true;
+      hangarGroup.add(hroof);
+
+      const hlight = new THREE.PointLight(0xFFFBEB, 0.8, 30);
+      hlight.position.set(0, 12, 0);
+      hangarGroup.add(hlight);
+
+      hangarGroup.userData = {
+        id: "HANGAR",
+        name: "SNJ Aircraft Maintenance Hangar (MRO)",
+        category: "Hangar",
+        stats: "Bay 1: C-Check Inspection Active"
+      };
+      clickableObjects.push(bwall);
+      bwall.userData = hangarGroup.userData;
+      entityRegistry.set("HANGAR", hangarGroup.userData);
+      scene.add(hangarGroup);
+    }
+
+    /* --------------------------------------------------------------------------
+       LANDSIDE FORECOURT: ROADS, CAR PARKS & PALM TREES
+       -------------------------------------------------------------------------- */
+    function buildLandsideForecourt() {
+      const landsideGroup = new THREE.Group();
+      landsideGroup.position.set(0, 0, 48);
+
+      const roadGeo = new THREE.PlaneGeometry(160, 22);
+      const roadMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.85 });
+      const road = new THREE.Mesh(roadGeo, roadMat);
+      road.rotation.x = -Math.PI / 2;
+      road.position.set(0, 0.05, 12);
+      road.receiveShadow = true;
+      landsideGroup.add(road);
+
+      const parkGeo = new THREE.PlaneGeometry(120, 20);
+      const parkMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 });
+      const park = new THREE.Mesh(parkGeo, parkMat);
+      park.rotation.x = -Math.PI / 2;
+      park.position.set(0, 0.05, 34);
+      park.receiveShadow = true;
+      landsideGroup.add(park);
+
+      const carColors = [0xEF4444, 0x3B82F6, 0xF9FAFB, 0x111827, 0x10B981, 0xF59E0B];
+      for (let px = -50; px <= 50; px += 9) {
+        [28, 38].forEach(pz => {
+          const car = createLowPolyCar(carColors[Math.floor(Math.random() * carColors.length)]);
+          car.position.set(px, 0.1, pz);
+          landsideGroup.add(car);
+        });
+      }
+
+      for (let tx = -70; tx <= 70; tx += 12) {
+        if (Math.abs(tx) > 5) {
+          const palm = createLowPolyPalm();
+          palm.position.set(tx, 0, 0);
+          landsideGroup.add(palm);
+        }
+      }
+
+      scene.add(landsideGroup);
+    }
+
+    function createLowPolyCar(colorHex) {
+      const car = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(4.2, 1.4, 2.2),
+        new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.5 })
+      );
+      body.position.y = 0.8;
+      body.castShadow = true;
+      car.add(body);
+
+      const cab = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 1.0, 1.9),
+        new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.3 })
+      );
+      cab.position.set(-0.2, 1.9, 0);
+      car.add(cab);
+
+      const wGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.35, 8);
+      const wMat = new THREE.MeshStandardMaterial({ color: 0x111827 });
+      [[-1.3, -1], [-1.3, 1], [1.3, -1], [1.3, 1]].forEach(([wx, wz]) => {
+        const w = new THREE.Mesh(wGeo, wMat);
+        w.rotation.x = Math.PI / 2;
+        w.position.set(wx, 0.45, wz);
+        car.add(w);
+      });
+      return car;
+    }
+
+    function createLowPolyPalm() {
+      const palm = new THREE.Group();
+      const trunkGeo = new THREE.CylinderGeometry(0.35, 0.6, 6, 6);
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350F, roughness: 0.9 });
+      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+      trunk.position.y = 3;
+      trunk.rotation.z = (Math.random() - 0.5) * 0.15;
+      trunk.castShadow = true;
+      palm.add(trunk);
+
+      const leafMat = new THREE.MeshStandardMaterial({ color: 0x15803D, roughness: 0.7, flatShading: true });
+      for (let a = 0; a < 6; a++) {
+        const leafGeo = new THREE.ConeGeometry(1.6, 4.5, 4);
+        const leaf = new THREE.Mesh(leafGeo, leafMat);
+        leaf.position.set(0, 5.8, 0);
+        leaf.rotation.z = Math.PI / 2.6;
+        leaf.rotation.y = (a / 6) * Math.PI * 2;
+        leaf.castShadow = true;
+        palm.add(leaf);
+      }
+      return palm;
+    }
+
+    /* --------------------------------------------------------------------------
+       PROCEDURAL AIRCRAFT GENERATOR (A320neo)
+       -------------------------------------------------------------------------- */
+    function createProceduralA320(flightNum, reg, airline, liveryColor) {
+      const plane = new THREE.Group();
+
+      const bodyMat = new THREE.MeshStandardMaterial({ color: PALETTE.clayWall, roughness: 0.65 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: liveryColor, roughness: 0.55 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+      const glassMat = new THREE.MeshBasicMaterial({ color: 0x1E293B });
+
+      const fuselageGeo = new THREE.CylinderGeometry(2.1, 2.1, 28, 16);
+      const fuselage = new THREE.Mesh(fuselageGeo, bodyMat);
+      fuselage.rotation.z = Math.PI / 2;
+      fuselage.position.y = 3.6;
+      fuselage.castShadow = true;
+      plane.add(fuselage);
+
+      const noseGeo = new THREE.ConeGeometry(2.1, 5.5, 16);
+      const nose = new THREE.Mesh(noseGeo, bodyMat);
+      nose.rotation.z = -Math.PI / 2;
+      nose.position.set(16.7, 3.6, 0);
+      nose.castShadow = true;
+      plane.add(nose);
+
+      const tailConeGeo = new THREE.ConeGeometry(2.1, 8.5, 16);
+      const tailCone = new THREE.Mesh(tailConeGeo, bodyMat);
+      tailCone.rotation.z = Math.PI / 2;
+      tailCone.position.set(-18.2, 3.8, 0);
+      tailCone.castShadow = true;
+      plane.add(tailCone);
+
+      const cockpitGeo = new THREE.BoxGeometry(1.8, 0.9, 2.6);
+      const cockpit = new THREE.Mesh(cockpitGeo, glassMat);
+      cockpit.position.set(15.2, 4.7, 0);
+      cockpit.rotation.z = 0.25;
+      plane.add(cockpit);
+
+      for (let wx = -10; wx <= 11; wx += 1.8) {
+        [-2.05, 2.05].forEach(wz => {
+          const win = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.2), glassMat);
+          win.position.set(wx, 4.1, wz);
+          plane.add(win);
+        });
+      }
+
+      const wingGeo = new THREE.BoxGeometry(9, 0.45, 26);
+      const wings = new THREE.Mesh(wingGeo, bodyMat);
+      wings.position.set(1, 3.2, 0);
+      wings.rotation.y = 0.15;
+      wings.castShadow = true;
+      plane.add(wings);
+
+      [-13.1, 13.1].forEach((tipZ, i) => {
+        const sharkletGeo = new THREE.BoxGeometry(1.6, 2.2, 0.3);
+        const sharklet = new THREE.Mesh(sharkletGeo, accentMat);
+        sharklet.position.set(1.5, 4.2, tipZ);
+        sharklet.rotation.x = i === 0 ? -0.3 : 0.3;
+        plane.add(sharklet);
+      });
+
+      plane.engines = [];
+      [-6.5, 6.5].forEach(engZ => {
+        const engGroup = new THREE.Group();
+        const nacelleGeo = new THREE.CylinderGeometry(1.5, 1.4, 5.5, 14, 1, true);
+        const nacelle = new THREE.Mesh(nacelleGeo, bodyMat);
+        nacelle.rotation.z = Math.PI / 2;
+        nacelle.castShadow = true;
+        engGroup.add(nacelle);
+
+        const spinnerGeo = new THREE.ConeGeometry(0.6, 1.8, 12);
+        const spinner = new THREE.Mesh(spinnerGeo, darkMat);
+        spinner.rotation.z = -Math.PI / 2;
+        spinner.position.x = 1.2;
+        engGroup.add(spinner);
+
+        const pylon = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 0.5), darkMat);
+        pylon.position.set(0, 1.3, 0);
+        engGroup.add(pylon);
+
+        engGroup.position.set(2, 2.1, engZ);
+        plane.add(engGroup);
+        plane.engines.push(spinner);
+      });
+
+      const tailFinGeo = new THREE.BoxGeometry(5.5, 7.5, 0.5);
+      const tailFin = new THREE.Mesh(tailFinGeo, accentMat);
+      tailFin.position.set(-17.5, 8.5, 0);
+      tailFin.rotation.z = 0.45;
+      tailFin.castShadow = true;
+      plane.add(tailFin);
+
+      const hStabGeo = new THREE.BoxGeometry(4.2, 0.35, 10.5);
+      const hStab = new THREE.Mesh(hStabGeo, bodyMat);
+      hStab.position.set(-18.5, 4.8, 0);
+      hStab.castShadow = true;
+      plane.add(hStab);
+
+      plane.gearGroup = new THREE.Group();
+
+      const noseStrut = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.2, 8), darkMat);
+      noseStrut.position.set(13.5, 1.1, 0);
+      plane.gearGroup.add(noseStrut);
+      const noseWheel = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.6, 10), darkMat);
+      noseWheel.rotation.x = Math.PI / 2;
+      noseWheel.position.set(13.5, 0.45, 0);
+      plane.gearGroup.add(noseWheel);
+
+      [-3.2, 3.2].forEach(gx => {
+        const mainStrut = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 2.3, 8), darkMat);
+        mainStrut.position.set(0, 1.15, gx);
+        plane.gearGroup.add(mainStrut);
+
+        const bogie = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.9, 10), darkMat);
+        bogie.rotation.x = Math.PI / 2;
+        bogie.position.set(0, 0.5, gx);
+        plane.gearGroup.add(bogie);
+      });
+
+      plane.add(plane.gearGroup);
+
+      const redNav = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), new THREE.MeshBasicMaterial({ color: 0xFF0000 }));
+      redNav.position.set(1.5, 4.3, 13.2);
+      plane.add(redNav);
+      const greenNav = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), new THREE.MeshBasicMaterial({ color: 0x00FF00 }));
+      greenNav.position.set(1.5, 4.3, -13.2);
+      plane.add(greenNav);
+
+      plane.userData = {
+        id: flightNum,
+        name: `${flightNum} (${airline})`,
+        flightNum: flightNum,
+        reg: reg,
+        type: 'Airbus A320neo',
+        airline: airline,
+        category: 'Aircraft',
+        state: 'STANDBY',
+        assignedStand: 'A3',
+        speed: 0,
+        altitude: 0,
+        fuel: 14.2,
+        pax: 168,
+        origin: 'BLR',
+        dest: 'SNJ',
+        mesh: plane
+      };
+
+      clickableObjects.push(fuselage);
+      fuselage.userData = plane.userData;
+      entityRegistry.set(flightNum, plane.userData);
+
+      return plane;
+    }
+
+    /* --------------------------------------------------------------------------
+       GROUND SUPPORT EQUIPMENT (GSE)
+       -------------------------------------------------------------------------- */
+    function createPushbackTug() {
+      const tug = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(6, 1.8, 3.4),
+        new THREE.MeshStandardMaterial({ color: PALETTE.accent, roughness: 0.6 })
+      );
+      body.position.y = 1.1;
+      body.castShadow = true;
+      tug.add(body);
+
+      const cab = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, 1.2, 3.1),
+        new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.3 })
+      );
+      cab.position.set(-1.2, 2.2, 0);
+      tug.add(cab);
+
+      const wGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.5, 10);
+      const wMat = new THREE.MeshStandardMaterial({ color: 0x0F172A });
+      [[-1.8, -1.6], [-1.8, 1.6], [1.8, -1.6], [1.8, 1.6]].forEach(([wx, wz]) => {
+        const w = new THREE.Mesh(wGeo, wMat);
+        w.rotation.x = Math.PI / 2;
+        w.position.set(wx, 0.65, wz);
+        tug.add(w);
+      });
+
+      const bar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 4.5, 8),
+        new THREE.MeshStandardMaterial({ color: 0xFBBF24 })
+      );
+      bar.rotation.z = Math.PI / 2;
+      bar.position.set(4.5, 0.8, 0);
+      tug.add(bar);
+
+      tug.userData = { id: "T-01", name: "Pushback Tug T-01", category: "Vehicle", type: "Towbar Tug", speed: 8, mesh: tug };
+      clickableObjects.push(body);
+      body.userData = tug.userData;
+      entityRegistry.set("T-01", tug.userData);
+      return tug;
+    }
+
+    function createBaggageTrain() {
+      const train = new THREE.Group();
+      const tug = new THREE.Mesh(
+        new THREE.BoxGeometry(3.6, 1.6, 2.2),
+        new THREE.MeshStandardMaterial({ color: 0xF59E0B, roughness: 0.7 })
+      );
+      tug.position.y = 0.9;
+      tug.castShadow = true;
+      train.add(tug);
+
+      for (let c = 1; c <= 3; c++) {
+        const cart = new THREE.Group();
+        cart.position.set(-c * 4.2, 0, 0);
+        const bed = new THREE.Mesh(
+          new THREE.BoxGeometry(3.2, 0.8, 2.0),
+          new THREE.MeshStandardMaterial({ color: 0x64748B })
+        );
+        bed.position.y = 0.6;
+        bed.castShadow = true;
+        cart.add(bed);
+
+        const caseColors = [0xEF4444, 0x3B82F6, 0x10B981, 0x1F2937];
+        for (let b = 0; b < 4; b++) {
+          const bag = new THREE.Mesh(
+            new THREE.BoxGeometry(0.9, 0.6, 0.7),
+            new THREE.MeshStandardMaterial({ color: caseColors[b % caseColors.length] })
+          );
+          bag.position.set(-0.8 + (b % 2) * 1.4, 1.2, -0.4 + Math.floor(b / 2) * 0.8);
+          cart.add(bag);
+        }
+        train.add(cart);
+      }
+
+      train.userData = { id: "BT-04", name: "Baggage Tug BT-04", category: "Vehicle", type: "Cargo Handler", speed: 12, mesh: train };
+      clickableObjects.push(tug);
+      tug.userData = train.userData;
+      entityRegistry.set("BT-04", train.userData);
+      return train;
+    }
+
+    function createCateringTruck() {
+      const truck = new THREE.Group();
+      const chassis = new THREE.Mesh(
+        new THREE.BoxGeometry(6.5, 1.4, 2.8),
+        new THREE.MeshStandardMaterial({ color: PALETTE.clayWall, roughness: 0.7 })
+      );
+      chassis.position.y = 0.8;
+      chassis.castShadow = true;
+      truck.add(chassis);
+
+      truck.liftBox = new THREE.Mesh(
+        new THREE.BoxGeometry(4.8, 3.2, 2.7),
+        new THREE.MeshStandardMaterial({ color: PALETTE.accent, roughness: 0.6 })
+      );
+      truck.liftBox.position.set(-0.8, 2.8, 0);
+      truck.liftBox.castShadow = true;
+      truck.add(truck.liftBox);
+
+      const scissor = new THREE.Mesh(
+        new THREE.BoxGeometry(3.5, 0.2, 2.4),
+        new THREE.MeshStandardMaterial({ color: 0x334155 })
+      );
+      scissor.position.set(-0.8, 1.6, 0);
+      truck.add(scissor);
+
+      truck.userData = { id: "CT-02", name: "Catering Hi-Lift CT-02", category: "Vehicle", type: "Galley Service", speed: 10, mesh: truck };
+      clickableObjects.push(chassis);
+      chassis.userData = truck.userData;
+      entityRegistry.set("CT-02", truck.userData);
+      return truck;
+    }
+
+    /* --------------------------------------------------------------------------
+       SPAWN LIFE & SCHEDULE ENGINE
+       -------------------------------------------------------------------------- */
+    let plane1, plane2;
+    let pushbackTug, baggageTrain, cateringTruck;
+
+    function spawnSimulationEntities() {
+      plane1 = createProceduralA320('AI-742', 'VT-EXA', 'Air India', PALETTE.accent);
+      plane1.position.set(0, 0, 8);
+      plane1.rotation.y = -Math.PI / 2;
+      plane1.userData.state = 'TURNAROUND';
+      plane1.userData.stateTimer = 0;
+      plane1.userData.assignedStand = 'A3';
+      aircraftList.push(plane1);
+      scene.add(plane1);
+
+      plane2 = createProceduralA320('6E-203', 'VT-IFR', 'IndiGo', 0x0284C7);
+      plane2.position.set(-180, 28, -75);
+      plane2.rotation.y = Math.PI / 2;
+      plane2.userData.state = 'APPROACH';
+      plane2.userData.stateTimer = 0;
+      plane2.userData.assignedStand = 'A1';
+      aircraftList.push(plane2);
+      scene.add(plane2);
+
+      pushbackTug = createPushbackTug();
+      pushbackTug.position.set(0, 0, 24);
+      pushbackTug.rotation.y = Math.PI / 2;
+      vehicleList.push(pushbackTug);
+      scene.add(pushbackTug);
+
+      baggageTrain = createBaggageTrain();
+      baggageTrain.position.set(38, 0, 18);
+      vehicleList.push(baggageTrain);
+      scene.add(baggageTrain);
+
+      cateringTruck = createCateringTruck();
+      cateringTruck.position.set(-35, 0, 16);
+      vehicleList.push(cateringTruck);
+      scene.add(cateringTruck);
+    }
+
+    /* --------------------------------------------------------------------------
+       WEATHER & PARTICLE SYSTEMS
+       -------------------------------------------------------------------------- */
+    function setupWeatherParticles() {
+      const pCount = 2500;
+      particleGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(pCount * 3);
+
+      for (let i = 0; i < pCount; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 320;
+        positions[i * 3 + 1] = Math.random() * 80;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 260;
+      }
+
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      particleMat = new THREE.PointsMaterial({
+        color: 0x93C5FD,
+        size: 0.6,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending
+      });
+
+      particleSystem = new THREE.Points(particleGeo, particleMat);
+      scene.add(particleSystem);
+    }
+
+    function updateWeatherParticles(delta) {
+      if (AppState.season === 'summer') {
+        particleMat.opacity = 0;
+        return;
+      }
+
+      const pos = particleGeo.attributes.position.array;
+      const count = pos.length / 3;
+
+      for (let i = 0; i < count; i++) {
+        const fallSpeed = AppState.season === 'monsoon' ? 2.5 : 0.45;
+        pos[i * 3 + 1] -= fallSpeed;
+
+        if (AppState.season === 'snow') {
+          pos[i * 3] += Math.sin(pos[i * 3 + 1] * 0.1) * 0.15;
+        }
+
+        if (pos[i * 3 + 1] < 0) {
+          pos[i * 3 + 1] = 75;
+          pos[i * 3] = (Math.random() - 0.5) * 320;
+          pos[i * 3 + 2] = (Math.random() - 0.5) * 260;
+        }
+      }
+      particleGeo.attributes.position.needsUpdate = true;
+
+      if (AppState.season === 'monsoon') {
+        if (Math.random() < 0.008) {
+          lightningLight.intensity = 2.5;
+          setTimeout(() => { lightningLight.intensity = 0; }, 80);
+          setTimeout(() => { lightningLight.intensity = 1.8; }, 140);
+          setTimeout(() => { lightningLight.intensity = 0; }, 220);
+        }
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       LIFE CYCLE UPDATE LOOP
+       -------------------------------------------------------------------------- */
+    function updateSimulation(delta) {
+      if (radarDish) {
+        radarDish.rotation.y += delta * 1.5;
+      }
+
+      aircraftList.forEach(ac => {
+        if (ac.engines) {
+          ac.engines.forEach(eng => { eng.rotation.x += delta * 25; });
+        }
+      });
+
+      // Aircraft 1 Loop
+      const a1 = plane1;
+      a1.userData.stateTimer += delta;
+
+      if (a1.userData.state === 'TURNAROUND') {
+        const t = a1.userData.stateTimer;
+        updateTurnaroundUI(t);
+
+        if (cateringTruck && cateringTruck.liftBox) {
+          cateringTruck.liftBox.position.y = 2.8 + Math.sin(t * 0.8) * 1.4;
+        }
+
+        if (t > 15) {
+          a1.userData.state = 'PUSHBACK';
+          a1.userData.stateTimer = 0;
+          window.triggerNotification('AI-742 starting pushback from Stand A3. Ground crew clear.');
+        }
+      } else if (a1.userData.state === 'PUSHBACK') {
+        if (a1.position.z < 28) {
+          a1.position.z += delta * 2.2;
+          pushbackTug.position.z = a1.position.z + 8;
+        } else {
+          a1.userData.state = 'TAXI_OUT';
+          a1.userData.stateTimer = 0;
+          window.triggerNotification('AI-742 pushback completed. Taxiing via Bravo to Holding Point 09L.');
+        }
+      } else if (a1.userData.state === 'TAXI_OUT') {
+        if (a1.rotation.y > -Math.PI) a1.rotation.y -= delta * 0.8;
+        if (a1.position.x > -70) {
+          a1.position.x -= delta * 5.5;
+        } else if (a1.position.z > -75) {
+          a1.rotation.y = -Math.PI / 2;
+          a1.position.z -= delta * 5.5;
+        } else {
+          a1.userData.state = 'LINEUP_TAKEOFF';
+          a1.position.set(-70, 0, -75);
+          a1.rotation.y = Math.PI / 2;
+          window.triggerNotification('AI-742 cleared for immediate takeoff Runway 09L. Wind 090/10kt.');
+        }
+      } else if (a1.userData.state === 'LINEUP_TAKEOFF') {
+        a1.position.x += delta * 22;
+        if (a1.position.x > 10) {
+          a1.position.y += delta * 8;
+          a1.rotation.z = -0.15;
+          if (a1.gearGroup) a1.gearGroup.position.y = Math.max(-2, a1.gearGroup.position.y - delta * 2);
+        }
+        if (a1.position.x > 180) {
+          a1.position.set(-220, 35, -75);
+          a1.rotation.set(0, Math.PI / 2, 0);
+          if (a1.gearGroup) a1.gearGroup.position.y = 0;
+          a1.userData.state = 'APPROACH';
+          a1.userData.stateTimer = 0;
+        }
+      } else if (a1.userData.state === 'APPROACH') {
+        a1.position.x += delta * 16;
+        a1.position.y = Math.max(0, a1.position.y - delta * 3.5);
+        if (a1.position.y <= 0.05 && a1.position.x >= -110) {
+          a1.position.y = 0;
+          a1.userData.state = 'ROLLOUT';
+          window.triggerNotification('AI-742 touchdown Runway 09L. Decelerating.');
+        }
+      } else if (a1.userData.state === 'ROLLOUT') {
+        a1.position.x += delta * 12;
+        if (a1.position.x >= 70) {
+          a1.userData.state = 'TAXI_TO_GATE';
+          a1.rotation.y = Math.PI;
+        }
+      } else if (a1.userData.state === 'TAXI_TO_GATE') {
+        if (a1.position.z < 28) {
+          a1.position.z += delta * 5.5;
+        } else if (a1.position.x > 0) {
+          a1.rotation.y = -Math.PI;
+          a1.position.x -= delta * 5.5;
+        } else {
+          a1.position.set(0, 0, 8);
+          a1.rotation.y = -Math.PI / 2;
+          a1.userData.state = 'TURNAROUND';
+          a1.userData.stateTimer = 0;
+        }
+      }
+
+      // Aircraft 2 Loop
+      const a2 = plane2;
+      if (a2.userData.state === 'APPROACH') {
+        a2.position.x += delta * 15;
+        a2.position.y = Math.max(0, a2.position.y - delta * 2.8);
+        if (a2.position.y <= 0.05 && a2.position.x > -90) {
+          a2.position.y = 0;
+          a2.userData.state = 'ROLLOUT';
+          window.triggerNotification('IndiGo 6E-203 landed safely on Runway 09L.');
+        }
+      } else if (a2.userData.state === 'ROLLOUT') {
+        a2.position.x += delta * 10;
+        if (a2.position.x >= 70) {
+          a2.userData.state = 'TAXI_TO_GATE';
+        }
+      } else if (a2.userData.state === 'TAXI_TO_GATE') {
+        if (a2.position.z < 28) {
+          a2.rotation.y = 0;
+          a2.position.z += delta * 5;
+        } else if (a2.position.x > -50) {
+          a2.rotation.y = -Math.PI;
+          a2.position.x -= delta * 5;
+        } else if (a2.position.z > 8) {
+          a2.rotation.y = -Math.PI / 2;
+          a2.position.z -= delta * 3;
+        } else {
+          a2.userData.state = 'TURNAROUND';
+          a2.userData.stateTimer = 0;
+        }
+      } else if (a2.userData.state === 'TURNAROUND') {
+        a2.userData.stateTimer += delta;
+        if (a2.userData.stateTimer > 18) {
+          a2.position.set(-190, 32, -75);
+          a2.rotation.set(0, Math.PI / 2, 0);
+          a2.userData.state = 'APPROACH';
+          a2.userData.stateTimer = 0;
+        }
+      }
+
+      // Baggage train movement
+      if (baggageTrain) {
+        baggageTrain.position.x = 25 + Math.sin(Date.now() * 0.0008) * 35;
+        baggageTrain.rotation.y = Math.sin(Date.now() * 0.0008) > 0 ? 0 : Math.PI;
+      }
+
+      // Camera Glide / Transition Logic (Stops lerping once reached)
+      if (AppState.cameraFollowing && AppState.selectedObject) {
+        const mesh = AppState.selectedObject.mesh || AppState.selectedObject;
+        const targetWorldPos = new THREE.Vector3();
+        mesh.getWorldPosition(targetWorldPos);
+        controls.target.lerp(targetWorldPos, 0.08);
+        camera.position.lerp(new THREE.Vector3(targetWorldPos.x + 28, targetWorldPos.y + 24, targetWorldPos.z + 36), 0.06);
+      } else if (AppState.isCameraTransitioning) {
+        camera.position.lerp(AppState.cameraTargetPos, 0.07);
+        controls.target.lerp(AppState.cameraTargetLook, 0.07);
+
+        // Check if transition reached threshold
+        if (camera.position.distanceTo(AppState.cameraTargetPos) < 0.6) {
+          AppState.isCameraTransitioning = false;
+        }
+      }
+
+      updateFloatingHUD();
+    }
+
+    /* --------------------------------------------------------------------------
+       PROCEDURAL LIVE CCTV SCREEN (CANVAS DRAW)
+       -------------------------------------------------------------------------- */
+    let cctvCanvas, cctvCtx;
+    const CCTV_FEEDS = [
+      { name: "CAM 01 • STAND A3", type: "apron" },
+      { name: "CAM 02 • RUNWAY 09L", type: "runway" },
+      { name: "CAM 03 • TOWER 360", type: "radar" },
+      { name: "CAM 04 • CARGO BAY", type: "cargo" }
+    ];
+
+    function initCCTVFeed() {
+      cctvCanvas = document.getElementById('cctv-canvas');
+      if (!cctvCanvas) return;
+      cctvCanvas.width = 300;
+      cctvCanvas.height = 125;
+      cctvCtx = cctvCanvas.getContext('2d');
+    }
+
+    function renderCCTVFrame() {
+      if (!cctvCtx) return;
+      const w = cctvCanvas.width;
+      const h = cctvCanvas.height;
+      const now = Date.now();
+
+      // Clear dark background
+      cctvCtx.fillStyle = '#060A12';
+      cctvCtx.fillRect(0, 0, w, h);
+
+      const feed = CCTV_FEEDS[AppState.cctvFeedIdx] || CCTV_FEEDS[0];
+
+      if (feed.type === 'radar') {
+        // Radar Sweep View
+        cctvCtx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+        cctvCtx.lineWidth = 1;
+        const cx = w / 2, cy = h / 2;
+        [20, 40, 55].forEach(r => {
+          cctvCtx.beginPath();
+          cctvCtx.arc(cx, cy, r, 0, Math.PI * 2);
+          cctvCtx.stroke();
+        });
+        // Crosshairs
+        cctvCtx.beginPath();
+        cctvCtx.moveTo(cx, 0); cctvCtx.lineTo(cx, h);
+        cctvCtx.moveTo(0, cy); cctvCtx.lineTo(w, cy);
+        cctvCtx.stroke();
+
+        // Sweep Line
+        const angle = (now * 0.002) % (Math.PI * 2);
+        cctvCtx.strokeStyle = 'rgba(16, 185, 129, 0.9)';
+        cctvCtx.lineWidth = 2;
+        cctvCtx.beginPath();
+        cctvCtx.moveTo(cx, cy);
+        cctvCtx.lineTo(cx + Math.cos(angle) * 60, cy + Math.sin(angle) * 60);
+        cctvCtx.stroke();
+
+        // Targets
+        cctvCtx.fillStyle = '#FF6A1A';
+        cctvCtx.fillRect(cx + 25, cy - 15, 4, 4);
+        cctvCtx.fillStyle = '#38BDF8';
+        cctvCtx.fillRect(cx - 35, cy + 10, 4, 4);
+      } else {
+        // Perspective Apron / Runway Camera Simulation
+        cctvCtx.fillStyle = '#111827';
+        cctvCtx.beginPath();
+        cctvCtx.moveTo(0, h * 0.4);
+        cctvCtx.lineTo(w, h * 0.4);
+        cctvCtx.lineTo(w, h);
+        cctvCtx.lineTo(0, h);
+        cctvCtx.fill();
+
+        // Centerline markings
+        cctvCtx.strokeStyle = feed.type === 'runway' ? 'rgba(255,255,255,0.7)' : 'rgba(251, 191, 36, 0.8)';
+        cctvCtx.lineWidth = 2;
+        cctvCtx.setLineDash([8, 8]);
+        cctvCtx.beginPath();
+        cctvCtx.moveTo(w * 0.5, h * 0.4);
+        cctvCtx.lineTo(w * 0.45 + Math.sin(now * 0.001) * 8, h);
+        cctvCtx.stroke();
+        cctvCtx.setLineDash([]);
+
+        // Aircraft Silhouette
+        cctvCtx.fillStyle = '#E2E8F0';
+        const px = w * 0.52 + Math.sin(now * 0.0008) * 15;
+        const py = h * 0.55;
+        cctvCtx.beginPath();
+        cctvCtx.ellipse(px, py, 26, 6, 0, 0, Math.PI * 2);
+        cctvCtx.fill();
+        // Tail
+        cctvCtx.fillStyle = '#FF6A1A';
+        cctvCtx.fillRect(px - 22, py - 12, 5, 12);
+      }
+
+      // CRT Scanlines
+      cctvCtx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+      for (let y = 0; y < h; y += 3) {
+        cctvCtx.fillRect(0, y, w, 1);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       FLOATING 3D HUD & SELECTION
+       -------------------------------------------------------------------------- */
+    function updateFloatingHUD() {
+      const hud = document.getElementById('hud-anchor');
+      if (!AppState.selectedObject) {
+        hud.style.display = 'none';
+        return;
+      }
+
+      const target = AppState.selectedObject.mesh || AppState.selectedObject;
+      const targetPos = new THREE.Vector3();
+      target.getWorldPosition(targetPos);
+      targetPos.y += 4.5;
+
+      const screenPos = targetPos.clone().project(camera);
+      if (screenPos.z < 1) {
+        const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
+        hud.style.left = `${x}px`;
+        hud.style.top = `${y}px`;
+        hud.style.display = 'block';
+        document.getElementById('hud-text').textContent = AppState.selectedObject.name || 'Target';
+      } else {
+        hud.style.display = 'none';
+      }
+    }
+
+    function selectEntity(entity) {
+      if (!entity) return;
+      AppState.selectedObject = entity;
+
+      document.getElementById('dp-title').textContent = entity.name || 'Airport Facility';
+      document.getElementById('dp-subtitle').textContent = entity.airline ? `${entity.airline} • Reg: ${entity.reg || 'VT-EXA'}` : 'Sanjai Apron Infrastructure';
+      document.getElementById('dp-status').textContent = entity.state || 'OPERATIONAL';
+
+      if (entity.origin) {
+        document.getElementById('dp-origin').textContent = entity.origin;
+        document.getElementById('dp-dest').textContent = entity.dest;
+      }
+      if (entity.assignedStand) {
+        document.getElementById('dp-stand').textContent = `Stand ${entity.assignedStand}`;
+      }
+      if (entity.fuel) {
+        document.getElementById('dp-fuel').textContent = `${entity.fuel} / 18.0 t`;
+      }
+      if (entity.pax) {
+        document.getElementById('dp-pax').textContent = `${entity.pax} / 180`;
+      }
+
+      renderTableData();
+    }
+
+    /* --------------------------------------------------------------------------
+       INTERACTION & RAYCASTING
+       -------------------------------------------------------------------------- */
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function setupInteraction() {
+      window.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.glass') || e.target.closest('#hud-anchor')) return;
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(clickableObjects, true);
+
+        if (intersects.length > 0) {
+          let hit = intersects[0].object;
+          while (hit && !hit.userData.name && hit.parent) {
+            hit = hit.parent;
+          }
+          if (hit && hit.userData.name) {
+            selectEntity(hit.userData);
+          }
+        }
+      });
+    }
+
+    /* --------------------------------------------------------------------------
+       GLOBAL API HOOKS (Attached directly to window)
+       -------------------------------------------------------------------------- */
+    window.flyToArea = function(areaKey, btn) {
+      if (btn) {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+
+      AppState.cameraFollowing = false;
+      const view = AREA_VIEWS[areaKey];
+      if (view) {
+        AppState.cameraTargetPos.set(view.pos[0], view.pos[1], view.pos[2]);
+        AppState.cameraTargetLook.set(view.look[0], view.look[1], view.look[2]);
+        AppState.isCameraTransitioning = true;
+      }
+      const followBtn = document.getElementById('btn-camera-follow');
+      if (followBtn) {
+        followBtn.style.background = 'var(--accent)';
+        followBtn.innerHTML = '<span>🎯 Follow with Camera</span>';
+      }
+    };
+
+    window.toggleCameraFollow = function() {
+      AppState.cameraFollowing = !AppState.cameraFollowing;
+      AppState.isCameraTransitioning = false;
+      const btn = document.getElementById('btn-camera-follow');
+      if (AppState.cameraFollowing) {
+        btn.style.background = '#10B981';
+        btn.innerHTML = '<span>🔒 Following Target (Click to Unlock)</span>';
+      } else {
+        btn.style.background = 'var(--accent)';
+        btn.innerHTML = '<span>🎯 Follow with Camera</span>';
+      }
+    };
+
+    window.toggleDayNight = function() {
+      AppState.isNight = !AppState.isNight;
+      const icon = document.getElementById('day-night-icon');
+
+      if (AppState.isNight) {
+        icon.textContent = '☀️';
+        scene.background.set(0x0A0D14);
+        scene.fog.color.set(0x0A0D14);
+        dirLight.intensity = 0.15;
+        ambientLight.intensity = 0.2;
+        hemiLight.intensity = 0.2;
+
+        runwayLightPoints.forEach(p => p.material.color.set(0xFFFFFF));
+        floodLights.forEach(f => f.intensity = 1.4);
+        window.triggerNotification('Night operations enabled. Runway edge lights and floodlights online.');
+      } else {
+        icon.textContent = '🌙';
+        window.changeSeason(AppState.season);
+        floodLights.forEach(f => f.intensity = 0);
+        window.triggerNotification('Daylight operations restored.');
+      }
+    };
+
+    window.changeSeason = function(season) {
+      AppState.season = season;
+      if (AppState.isNight) return;
+
+      if (season === 'summer') {
+        scene.background.set(0xD9E2EC);
+        scene.fog.color.set(0xD9E2EC);
+        scene.fog.density = 0.0035;
+        dirLight.color.set(0xFFF5E6);
+        dirLight.intensity = 1.25;
+        particleMat.opacity = 0;
+        window.triggerNotification('Weather: Clear Skies, 32°C, Runway 09L Dry.');
+      } else if (season === 'monsoon') {
+        scene.background.set(0x475569);
+        scene.fog.color.set(0x475569);
+        scene.fog.density = 0.007;
+        dirLight.color.set(0x94A3B8);
+        dirLight.intensity = 0.55;
+        particleMat.color.set(0x93C5FD);
+        particleMat.size = 0.7;
+        particleMat.opacity = 0.85;
+        window.triggerNotification('Monsoon Warning: Rain showers, wet tarmac, lightning active.');
+      } else if (season === 'winter') {
+        scene.background.set(0xCBD5E1);
+        scene.fog.color.set(0xCBD5E1);
+        scene.fog.density = 0.018;
+        dirLight.intensity = 0.45;
+        particleMat.opacity = 0;
+        window.triggerNotification('Low Visibility Procedures (LVP): CAT III ILS Active, Fog 300m.');
+      } else if (season === 'snow') {
+        scene.background.set(0xE2E8F0);
+        scene.fog.color.set(0xE2E8F0);
+        scene.fog.density = 0.009;
+        dirLight.color.set(0xF1F5F9);
+        dirLight.intensity = 0.9;
+        particleMat.color.set(0xFFFFFF);
+        particleMat.size = 1.2;
+        particleMat.opacity = 0.9;
+        window.triggerNotification('Snow Event: De-icing trucks deployed to taxiways.');
+      }
+    };
+
+    window.switchCameraFeed = function(idx, btn) {
+      AppState.cctvFeedIdx = idx;
+      document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const feed = CCTV_FEEDS[idx];
+      if (feed) {
+        document.getElementById('cctv-cam-title').textContent = feed.name;
+      }
+    };
+
+    window.switchTableTab = function(tabName, btn) {
+      AppState.currentTab = tabName;
+      document.querySelectorAll('.table-tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderTableData();
+    };
+
+    window.filterTable = function(tabName) {
+      const tabBtns = document.querySelectorAll('.table-tab-btn');
+      tabBtns.forEach(btn => {
+        if (btn.textContent.includes(tabName)) {
+          window.switchTableTab(tabName, btn);
+        }
+      });
+    };
+
+    window.selectEntityById = function(id) {
+      const entity = entityRegistry.get(id);
+      if (entity) {
+        selectEntity(entity);
+      }
+    };
+
+    window.focusStand = function(standId) {
+      const stand = standList.find(s => s.id === standId);
+      if (stand) {
+        selectEntity(stand);
+        AppState.cameraTargetPos.set(stand.x, 22, stand.z + 28);
+        AppState.cameraTargetLook.set(stand.x, 0, stand.z);
+        AppState.isCameraTransitioning = true;
+      }
+    };
+
+    window.handleSearch = function(query) {
+      if (!query) return;
+      const q = query.toLowerCase();
+      if (q.includes('ai') || q.includes('742') || q.includes('india')) {
+        window.selectEntityById('AI-742');
+      } else if (q.includes('6e') || q.includes('203') || q.includes('indigo')) {
+        window.selectEntityById('6E-203');
+      } else if (q.includes('a1') || q.includes('a2') || q.includes('a3') || q.includes('a4') || q.includes('a5')) {
+        window.focusStand(q.toUpperCase());
+      } else if (q.includes('tug') || q.includes('push')) {
+        window.selectEntityById('T-01');
+      } else if (q.includes('bag') || q.includes('cart')) {
+        window.selectEntityById('BT-04');
+      }
+    };
+
+    window.triggerNotification = function(msg) {
+      const toast = document.getElementById('alert-toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => { toast.classList.remove('show'); }, 4200);
+    };
+
+    function updateTurnaroundUI(elapsedSec) {
+      const steps = [
+        { id: 'step-0', name: 'On block', time: '18:12', dur: 2 },
+        { id: 'step-1', name: 'Deboard', time: '18:14', dur: 4 },
+        { id: 'step-2', name: 'Clean & Cater', time: '18:18', dur: 7 },
+        { id: 'step-3', name: 'Fuel', time: '18:28', dur: 10 },
+        { id: 'step-4', name: 'Board', time: '18:33', dur: 13 },
+        { id: 'step-5', name: 'Pushback', time: '18:43', dur: 15 }
+      ];
+
+      steps.forEach((st, idx) => {
+        const el = document.getElementById(st.id);
+        if (!el) return;
+        if (elapsedSec > st.dur) {
+          el.className = 'step-item done';
+          el.querySelector('.step-circle').textContent = '✓';
+        } else if (elapsedSec >= (steps[idx-1] ? steps[idx-1].dur : 0)) {
+          el.className = 'step-item active';
+          el.querySelector('.step-circle').textContent = idx + 1;
+        } else {
+          el.className = 'step-item';
+          el.querySelector('.step-circle').textContent = idx + 1;
+        }
+      });
+
+      const remainingMin = Math.max(0, Math.round(15 - elapsedSec));
+      document.getElementById('tt-time-tag').textContent = `T - ${remainingMin} min`;
+      document.getElementById('dp-countdown').textContent = `T-${remainingMin} min`;
+    }
+
+    function renderTableData() {
+      const container = document.getElementById('table-content-area');
+      let html = '';
+
+      if (AppState.currentTab === 'Stands') {
+        html = `
+          <table class="ops-table">
+            <thead>
+              <tr><th>Stand</th><th>Flight</th><th>Airline</th><th>Aircraft</th><th>Status</th><th>Turnaround</th></tr>
+            </thead>
+            <tbody>
+              <tr onclick="window.focusStand('A1')"><td><b>A1</b></td><td>6E-203</td><td>IndiGo</td><td>A320neo</td><td><span style="color:var(--status-orange)">● Inbound</span></td><td>18:40</td></tr>
+              <tr onclick="window.focusStand('A2')"><td><b>A2</b></td><td>AK-315</td><td>AirAsia</td><td>A320-200</td><td><span style="color:var(--status-green)">● Ready</span></td><td>18:50</td></tr>
+              <tr class="selected" onclick="window.focusStand('A3')"><td><b>A3</b></td><td>AI-742</td><td>Air India</td><td>A320neo</td><td><span style="color:var(--accent)">● Turnaround</span></td><td>18:43</td></tr>
+              <tr onclick="window.focusStand('A4')"><td><b>A4</b></td><td>SG-816</td><td>SpiceJet</td><td>B737-800</td><td><span style="color:var(--status-blue)">● Boarding</span></td><td>18:30</td></tr>
+              <tr onclick="window.focusStand('A5')"><td><b>A5</b></td><td>QP-1102</td><td>Akasa Air</td><td>B737 MAX</td><td><span style="color:var(--status-green)">● Open</span></td><td>--:--</td></tr>
+            </tbody>
+          </table>
+        `;
+      } else if (AppState.currentTab === 'Vehicles') {
+        html = `
+          <table class="ops-table">
+            <thead>
+              <tr><th>ID</th><th>Type</th><th>Zone</th><th>Speed</th><th>Battery</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr onclick="window.selectEntityById('T-01')"><td><b>T-01</b></td><td>Pushback Tug</td><td>Stand A3</td><td>8 kts</td><td>94%</td><td><span style="color:var(--accent)">Active</span></td></tr>
+              <tr onclick="window.selectEntityById('BT-04')"><td><b>BT-04</b></td><td>Baggage Tug</td><td>Apron Inner</td><td>12 kts</td><td>88%</td><td><span style="color:var(--status-green)">Moving</span></td></tr>
+              <tr onclick="window.selectEntityById('CT-02')"><td><b>CT-02</b></td><td>Catering Hi-Lift</td><td>Stand A3</td><td>0 kts</td><td>91%</td><td><span style="color:var(--status-orange)">Docked</span></td></tr>
+              <tr><td><b>FP-07</b></td><td>Fuel Hydrant Dispenser</td><td>Stand A3</td><td>0 kts</td><td>100%</td><td><span style="color:var(--status-green)">Pumping</span></td></tr>
+              <tr><td><b>CB-09</b></td><td>Crew Shuttle Bus</td><td>Terminal Gate</td><td>15 kts</td><td>79%</td><td><span style="color:var(--status-blue)">En Route</span></td></tr>
+            </tbody>
+          </table>
+        `;
+      } else if (AppState.currentTab === 'Flights') {
+        html = `
+          <table class="ops-table">
+            <thead>
+              <tr><th>Flight</th><th>Route</th><th>STD/STA</th><th>Gate</th><th>Pax</th><th>Fuel</th></tr>
+            </thead>
+            <tbody>
+              <tr class="selected" onclick="window.selectEntityById('AI-742')"><td><b>AI-742</b></td><td>BLR ➔ SNJ</td><td>18:12 / 18:45</td><td>A3</td><td>168</td><td>14.2 t</td></tr>
+              <tr onclick="window.selectEntityById('6E-203')"><td><b>6E-203</b></td><td>DEL ➔ SNJ</td><td>18:35 / 19:10</td><td>A1</td><td>174</td><td>15.8 t</td></tr>
+              <tr><td><b>UK-821</b></td><td>BOM ➔ SNJ</td><td>18:50 / 19:30</td><td>A2</td><td>152</td><td>13.6 t</td></tr>
+              <tr><td><b>EK-504</b></td><td>DXB ➔ SNJ</td><td>19:15 / 20:00</td><td>Cargo</td><td>--</td><td>42.0 t</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+      const el = document.getElementById('clock-display');
+      if (el) el.textContent = timeStr;
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /* --------------------------------------------------------------------------
+       ANIMATION LOOP
+       -------------------------------------------------------------------------- */
+    let lastTime = performance.now();
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const currentTime = performance.now();
+      const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
+      lastTime = currentTime;
+
+      controls.update();
+      updateSimulation(delta);
+      updateWeatherParticles(delta);
+      renderCCTVFrame();
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
