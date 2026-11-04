@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Gateflow — Sanjai International Airport Operations 3D</title>
-  <!-- Inline SVG Favicon (prevents 404) -->
+  <!-- Inline SVG Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
 
   <style>
     :root {
       --accent: #FF6A1A;
       --accent-glow: rgba(255, 106, 26, 0.45);
-      --bg-glass: rgba(18, 22, 31, 0.82);
-      --bg-glass-hover: rgba(28, 33, 46, 0.92);
+      --bg-glass: rgba(18, 22, 31, 0.85);
+      --bg-glass-hover: rgba(28, 33, 46, 0.94);
       --border-glass: rgba(255, 255, 255, 0.14);
       --border-accent: rgba(255, 106, 26, 0.55);
       --text-primary: #F3F4F6;
@@ -35,7 +35,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #0F172A;
+      background-color: #0A0D14;
       font-family: var(--font-stack);
       color: var(--text-primary);
       font-size: 13px;
@@ -58,7 +58,7 @@
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border-glass);
       border-radius: 12px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
       pointer-events: auto !important;
       z-index: 10;
       transition: border-color 0.2s ease;
@@ -358,11 +358,11 @@
       border: 1px solid rgba(16, 185, 129, 0.4);
     }
 
-    /* LIVE CCTV / SCREEN FEED CANVAS */
+    /* LIVE CCTV SCREEN BOX */
     .cctv-screen-box {
       width: 100%;
       height: 125px;
-      background: #090D16;
+      background: #060910;
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.15);
       position: relative;
@@ -425,7 +425,7 @@
       flex: 1;
       font-size: 8px;
       padding: 3px 0;
-      background: rgba(0, 0, 0, 0.65);
+      background: rgba(0, 0, 0, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #9CA3AF;
       border-radius: 4px;
@@ -446,7 +446,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.35);
       border-radius: 8px;
       border: 1px dashed var(--border-glass);
     }
@@ -743,7 +743,7 @@
     }
 
     .hud-tag {
-      background: rgba(18, 22, 31, 0.92);
+      background: rgba(18, 22, 31, 0.94);
       border: 1px solid var(--accent);
       color: #fff;
       padding: 4px 8px;
@@ -894,7 +894,6 @@
 
     <!-- Right Controls -->
     <div class="tool-group">
-      <!-- Season / Weather Selector -->
       <select id="season-select" class="select-dropdown" onchange="window.changeSeason(this.value)">
         <option value="summer">☀️ Summer (Clear)</option>
         <option value="monsoon">🌧️ Monsoon (Rain & Light)</option>
@@ -902,18 +901,15 @@
         <option value="snow">❄️ Snow & De-icing</option>
       </select>
 
-      <!-- Day / Night Toggle -->
       <button class="icon-btn" title="Toggle Day / Night" onclick="window.toggleDayNight()">
         <span id="day-night-icon">🌙</span>
       </button>
 
-      <!-- Alert Bell -->
       <button class="icon-btn" title="Operations Alerts" onclick="window.triggerNotification('All stands operating normally. Runway 09L active.')">
         🔔
         <div class="badge-dot"></div>
       </button>
 
-      <!-- Live Clock -->
       <div class="live-clock" id="clock-display">18:24:12</div>
     </div>
   </div>
@@ -944,11 +940,11 @@
       <span class="status-pill" id="dp-status">ON BLOCK</span>
     </div>
 
-    <!-- LIVE CCTV APRON SCREEN (Procedural Canvas) -->
+    <!-- LIVE CCTV APRON SCREEN -->
     <div class="cctv-screen-box">
       <canvas id="cctv-canvas"></canvas>
       <div class="cctv-overlay">
-        <span id="cctv-cam-title">CAM 03 • STAND A3</span>
+        <span id="cctv-cam-title">CAM 01 • STAND A3</span>
         <div class="rec-badge">
           <div class="rec-dot"></div>
           <span>REC</span>
@@ -1062,9 +1058,7 @@
       <button class="table-tab-btn" onclick="window.switchTableTab('Flights', this)">Flights (10)</button>
     </div>
 
-    <div class="table-scroll" id="table-content-area">
-      <!-- Injected by JavaScript -->
-    </div>
+    <div class="table-scroll" id="table-content-area"></div>
   </div>
 
   <!-- NOTIFICATION TOAST -->
@@ -1076,23 +1070,32 @@
   <!-- JAVASCRIPT APPLICATION -->
   <script>
     /* ==========================================================================
-       GATEFLOW — AIRPORT OPERATIONS 3D ENGINE
+       GATEFLOW — AIRPORT OPERATIONS 3D ENGINE (OPTIMIZED & HARDENED)
        ========================================================================== */
 
     // App State
     const AppState = {
       isNight: false,
-      season: 'summer', // summer, monsoon, winter, snow
+      season: 'summer',
       selectedObject: null,
       cameraFollowing: false,
       isCameraTransitioning: false,
       cameraTargetPos: new THREE.Vector3(90, 85, 110),
       cameraTargetLook: new THREE.Vector3(0, 0, 0),
       currentTab: 'Stands',
-      cctvFeedIdx: 0
+      cctvFeedIdx: 0,
+      lastCCTVTime: 0,
+      lastTurnaroundUpdate: 0,
+      toastTimer: null
     };
 
-    // World Palette & Config
+    // Reusable Scratch Vectors (Zero Garbage Collection during animate loop)
+    const _scratchVec1 = new THREE.Vector3();
+    const _scratchVec2 = new THREE.Vector3();
+    const _scratchTargetWorldPos = new THREE.Vector3();
+    const _scratchScreenPos = new THREE.Vector3();
+
+    // World Palette
     const PALETTE = {
       accent: 0xFF6A1A,
       tarmac: 0x2A2E38,
@@ -1113,7 +1116,7 @@
     let particleSystem, particleGeo, particleMat;
     let lightningLight;
 
-    // Simulation Entities & Lookup Registries
+    // Simulation Entities
     const entityRegistry = new Map();
     const aircraftList = [];
     const vehicleList = [];
@@ -1125,7 +1128,7 @@
       overview: { pos: [90, 85, 110], look: [0, 0, 0] },
       terminal: { pos: [0, 36, 46], look: [0, 0, 0] },
       runway: { pos: [-80, 26, 62], look: [-80, 0, -20] },
-      cargo: { pos: [78, 30, -32], look: [70, 0, -40] },
+      cargo: { pos: [78, 30, -10], look: [75, 0, -15] },
       hangar: { pos: [-68, 30, -32], look: [-60, 0, -40] },
       landside: { pos: [0, 32, 86], look: [0, 0, 40] }
     };
@@ -1143,14 +1146,14 @@
       scene.background = new THREE.Color(0xD9E2EC);
       scene.fog = new THREE.FogExp2(0xD9E2EC, 0.0035);
 
-      // 2. Camera (Isometric Perspective)
+      // 2. Camera
       camera = new THREE.PerspectiveCamera(38, width / height, 0.5, 1000);
       camera.position.set(AREA_VIEWS.overview.pos[0], AREA_VIEWS.overview.pos[1], AREA_VIEWS.overview.pos[2]);
 
-      // 3. Renderer with Soft Shadows & Tone Mapping
+      // 3. Renderer with Optimized Performance & Tone Mapping
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1166,7 +1169,6 @@
       controls.maxDistance = 280;
       controls.target.set(0, 0, 0);
 
-      // User interaction breaks camera auto-transition
       controls.addEventListener('start', () => {
         AppState.isCameraTransitioning = false;
         AppState.cameraFollowing = false;
@@ -1180,7 +1182,7 @@
       // 5. Lighting Setup
       setupLighting();
 
-      // 6. Build World Geometry
+      // 6. Build Procedural World
       buildAirportGround();
       buildTerminalComplex();
       buildControlTower();
@@ -1188,36 +1190,33 @@
       buildLandsideForecourt();
       buildRunwayAndLighting();
 
-      // 7. Spawn Simulation Aircraft & Ground Support Equipment
+      // 7. Spawn Simulation Aircraft & Ground Fleet
       spawnSimulationEntities();
 
-      // 8. Setup Weather & Particles
+      // 8. Weather & Particles
       setupWeatherParticles();
 
-      // 9. Interaction & Event Listeners
+      // 9. Interaction
       setupInteraction();
 
-      // 10. Start Live CCTV Canvas Loop
+      // 10. CCTV Screen Feed
       initCCTVFeed();
 
-      // 11. Start Clock & UI Updates
+      // 11. Clocks & Tables
       setInterval(updateClock, 1000);
       renderTableData();
 
-      // Initial Selection
+      // Default Selection
       if (aircraftList.length > 0) {
         selectEntity(aircraftList[0].userData);
       }
 
-      // Resize
       window.addEventListener('resize', onWindowResize, false);
-
-      // Render Loop
       animate();
     }
 
     /* --------------------------------------------------------------------------
-       LIGHTING SYSTEM
+       LIGHTING (Optimized shadow maps prevent GPU pipeline stalls)
        -------------------------------------------------------------------------- */
     function setupLighting() {
       hemiLight = new THREE.HemisphereLight(0xffffff, 0xd4cbb8, 0.55);
@@ -1225,30 +1224,30 @@
       scene.add(hemiLight);
 
       dirLight = new THREE.DirectionalLight(0xfff5e6, 1.25);
-      dirLight.position.set(120, 140, 80);
+      dirLight.position.set(110, 130, 75);
       dirLight.castShadow = true;
-      dirLight.shadow.mapSize.width = 2048;
-      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.mapSize.width = 1024; // 1024 prevents ReadPixels stall on iGPU/mobile
+      dirLight.shadow.mapSize.height = 1024;
       dirLight.shadow.camera.near = 10;
-      dirLight.shadow.camera.far = 380;
+      dirLight.shadow.camera.far = 360;
       const d = 110;
       dirLight.shadow.camera.left = -d;
       dirLight.shadow.camera.right = d;
       dirLight.shadow.camera.top = d;
       dirLight.shadow.camera.bottom = -d;
-      dirLight.shadow.bias = -0.0004;
+      dirLight.shadow.bias = -0.0005;
       scene.add(dirLight);
 
       ambientLight = new THREE.AmbientLight(0xdce6f2, 0.45);
       scene.add(ambientLight);
 
-      lightningLight = new THREE.PointLight(0xb0d4ff, 0, 600);
-      lightningLight.position.set(0, 100, 0);
+      lightningLight = new THREE.PointLight(0xb0d4ff, 0, 500);
+      lightningLight.position.set(0, 90, 0);
       scene.add(lightningLight);
     }
 
     /* --------------------------------------------------------------------------
-       PROCEDURAL WORLD: GROUND, RUNWAY & TAXIWAYS
+       PROCEDURAL GROUND & MARKINGS
        -------------------------------------------------------------------------- */
     function buildAirportGround() {
       const groundGeo = new THREE.PlaneGeometry(350, 260);
@@ -1262,6 +1261,7 @@
       ground.receiveShadow = true;
       scene.add(ground);
 
+      // Main Apron
       const apronGeo = new THREE.PlaneGeometry(160, 85);
       const apronMat = new THREE.MeshStandardMaterial({
         color: PALETTE.tarmac,
@@ -1274,32 +1274,44 @@
       apron.receiveShadow = true;
       scene.add(apron);
 
+      // Cargo Apron Slab
+      const cargoApronGeo = new THREE.PlaneGeometry(60, 55);
+      const cargoApron = new THREE.Mesh(cargoApronGeo, apronMat);
+      cargoApron.rotation.x = -Math.PI / 2;
+      cargoApron.position.set(78, 0.05, -15);
+      cargoApron.receiveShadow = true;
+      scene.add(cargoApron);
+
       createTaxiwayMarkings();
     }
 
     function createTaxiwayMarkings() {
       const lineMat = new THREE.MeshBasicMaterial({ color: PALETTE.tarmacMarkings });
 
+      // Apron Taxiway Line (Z = 24)
       const mainTaxiLineGeo = new THREE.PlaneGeometry(150, 0.5);
       const mainTaxiLine = new THREE.Mesh(mainTaxiLineGeo, lineMat);
       mainTaxiLine.rotation.x = -Math.PI / 2;
-      mainTaxiLine.position.set(0, 0.07, 30);
+      mainTaxiLine.position.set(0, 0.07, 24);
       scene.add(mainTaxiLine);
 
+      // Stand lead-in lines (5 stands: A1 to A5 at z=8)
       const standXCoords = [-50, -25, 0, 25, 50];
       standXCoords.forEach((x, i) => {
-        const standLeadGeo = new THREE.PlaneGeometry(0.5, 22);
+        const standLeadGeo = new THREE.PlaneGeometry(0.5, 17);
         const standLead = new THREE.Mesh(standLeadGeo, lineMat);
         standLead.rotation.x = -Math.PI / 2;
-        standLead.position.set(x, 0.07, 19);
+        standLead.position.set(x, 0.07, 16);
         scene.add(standLead);
 
+        // Stand Stop-Bar
         const tBarGeo = new THREE.PlaneGeometry(6, 0.7);
         const tBar = new THREE.Mesh(tBarGeo, lineMat);
         tBar.rotation.x = -Math.PI / 2;
         tBar.position.set(x, 0.07, 8);
         scene.add(tBar);
 
+        // Canvas Stand Numbers
         const canvas = document.createElement('canvas');
         canvas.width = 128;
         canvas.height = 128;
@@ -1335,7 +1347,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       RUNWAY 09L / 27R & LIGHTING
+       RUNWAY 09L / 27R & TAXIWAY LINKS
        -------------------------------------------------------------------------- */
     function buildRunwayAndLighting() {
       const rwyGeo = new THREE.PlaneGeometry(280, 24);
@@ -1352,6 +1364,7 @@
 
       const whiteMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
 
+      // Threshold Piano Keys
       for (let k = -9; k <= 9; k += 2.2) {
         const keyGeo = new THREE.PlaneGeometry(12, 1.1);
         const key1 = new THREE.Mesh(keyGeo, whiteMat);
@@ -1365,6 +1378,7 @@
         scene.add(key2);
       }
 
+      // Dashed Centerline
       for (let x = -110; x <= 110; x += 14) {
         const dashGeo = new THREE.PlaneGeometry(7, 0.8);
         const dash = new THREE.Mesh(dashGeo, whiteMat);
@@ -1373,6 +1387,7 @@
         scene.add(dash);
       }
 
+      // Edge Lights
       const lightBulbGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.35, 6);
       const lightBulbMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
 
@@ -1385,6 +1400,7 @@
         });
       }
 
+      // Green Threshold Lights
       const greenBulbMat = new THREE.MeshBasicMaterial({ color: PALETTE.lightsGreen });
       for (let lz = -86; lz <= -64; lz += 2.5) {
         [-137, 137].forEach(lx => {
@@ -1400,17 +1416,26 @@
     }
 
     function buildTaxiwayLink(xOffset) {
-      const linkGeo = new THREE.PlaneGeometry(14, 55);
+      // Connects Runway (-75) with Apron (24)
+      const linkGeo = new THREE.PlaneGeometry(14, 100);
       const linkMat = new THREE.MeshStandardMaterial({ color: PALETTE.tarmac, roughness: 0.85 });
       const link = new THREE.Mesh(linkGeo, linkMat);
       link.rotation.x = -Math.PI / 2;
-      link.position.set(xOffset, 0.05, -35);
+      link.position.set(xOffset, 0.05, -25);
       link.receiveShadow = true;
       scene.add(link);
 
+      // Yellow Centerline
+      const lineGeo = new THREE.PlaneGeometry(0.5, 100);
+      const line = new THREE.Mesh(lineGeo, new THREE.MeshBasicMaterial({ color: PALETTE.tarmacMarkings }));
+      line.rotation.x = -Math.PI / 2;
+      line.position.set(xOffset, 0.07, -25);
+      scene.add(line);
+
+      // Blue Edge Lights
       const blueBulbMat = new THREE.MeshBasicMaterial({ color: PALETTE.lightsBlue });
       const bulbGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.3, 6);
-      for (let z = -60; z <= -10; z += 10) {
+      for (let z = -70; z <= 20; z += 12) {
         [xOffset - 7.3, xOffset + 7.3].forEach(bx => {
           const b = new THREE.Mesh(bulbGeo, blueBulbMat);
           b.position.set(bx, 0.18, z);
@@ -1421,7 +1446,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       TERMINAL BUILDING COMPLEX & 5 JET BRIDGES
+       TERMINAL & 5 JET BRIDGES
        -------------------------------------------------------------------------- */
     function buildTerminalComplex() {
       const terminalGroup = new THREE.Group();
@@ -1489,11 +1514,6 @@
         bridge.castShadow = true;
         jbGroup.add(bridge);
 
-        const bGlassGeo = new THREE.BoxGeometry(2.7, 1.2, 8);
-        const bGlass = new THREE.Mesh(bGlassGeo, glassMat);
-        bGlass.position.set(0, 3.7, 5.5);
-        jbGroup.add(bGlass);
-
         const cabGeo = new THREE.BoxGeometry(3.6, 3, 3);
         const cab = new THREE.Mesh(cabGeo, clayMat);
         cab.position.set(0, 3.5, 11);
@@ -1518,6 +1538,7 @@
         cab.userData = gateData;
       });
 
+      // Floodlight Poles
       [-62, -15, 35, 62].forEach(fx => {
         const towerGroup = new THREE.Group();
         const poleGeo = new THREE.CylinderGeometry(0.4, 0.6, 24, 8);
@@ -1548,7 +1569,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       CONTROL TOWER WITH ROTATING RADAR
+       CONTROL TOWER
        -------------------------------------------------------------------------- */
     let radarDish;
     function buildControlTower() {
@@ -1620,28 +1641,32 @@
     }
 
     /* --------------------------------------------------------------------------
-       CARGO TERMINAL & MRO HANGAR
+       CARGO TERMINAL, FREIGHTER & MRO HANGAR
        -------------------------------------------------------------------------- */
+    let cargoFreighter, cargoForklift;
+
     function buildCargoAndHangar() {
-      // 1. CARGO TERMINAL (East Wing)
+      // 1. CARGO TERMINAL WAREHOUSE
       const cargoGroup = new THREE.Group();
       cargoGroup.position.set(78, 0, -32);
 
-      const whGeo = new THREE.BoxGeometry(45, 11, 28);
+      const whGeo = new THREE.BoxGeometry(45, 11, 24);
       const whMat = new THREE.MeshStandardMaterial({ color: 0xE2E8F0, roughness: 0.7 });
       const wh = new THREE.Mesh(whGeo, whMat);
       wh.position.y = 5.5;
       wh.castShadow = true;
       cargoGroup.add(wh);
 
+      // Loading Roller Doors
       const doorMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.3 });
-      for (let dx = -15; dx <= 15; dx += 10) {
+      for (let dx = -14; dx <= 14; dx += 9) {
         const doorGeo = new THREE.PlaneGeometry(6, 6);
         const door = new THREE.Mesh(doorGeo, doorMat);
-        door.position.set(dx, 3.2, 14.1);
+        door.position.set(dx, 3.2, 12.1);
         cargoGroup.add(door);
       }
 
+      // ULD Container Stacks
       const uldColors = [0x3B82F6, 0xEF4444, 0x10B981, 0xF59E0B, 0x9333EA];
       for (let ux = -18; ux <= 18; ux += 5) {
         const stackHeight = Math.floor(Math.random() * 2) + 1;
@@ -1652,7 +1677,7 @@
             roughness: 0.5
           });
           const uld = new THREE.Mesh(uldGeo, uldMat);
-          uld.position.set(ux, 1.2 + s * 2.5, 19 + (s % 2) * 2);
+          uld.position.set(ux, 1.2 + s * 2.5, 16 + (s % 2) * 2);
           uld.castShadow = true;
           cargoGroup.add(uld);
         }
@@ -1669,7 +1694,18 @@
       entityRegistry.set("CARGO", cargoGroup.userData);
       scene.add(cargoGroup);
 
-      // 2. OPEN MRO HANGAR (West Wing)
+      // 2. BOEING 777F CARGO FREIGHTER (Parked on Cargo Apron)
+      cargoFreighter = createCargoFreighter('EK-992', 'A6-EFD', 'Emirates SkyCargo');
+      cargoFreighter.position.set(78, 0, -12);
+      cargoFreighter.rotation.y = 0; // Facing south towards apron
+      scene.add(cargoFreighter);
+
+      // 3. CARGO FORKLIFT (Moving ULDs between warehouse and freighter)
+      cargoForklift = createCargoForklift();
+      cargoForklift.position.set(78, 0, -17);
+      scene.add(cargoForklift);
+
+      // 4. OPEN MRO HANGAR (West Wing)
       const hangarGroup = new THREE.Group();
       hangarGroup.position.set(-68, 0, -32);
 
@@ -1708,8 +1744,180 @@
       scene.add(hangarGroup);
     }
 
+    function createCargoFreighter(flightNum, reg, airline) {
+      const plane = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.65 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.5 });
+      const redAccent = new THREE.MeshStandardMaterial({ color: 0xDC2626 }); // Emirates Red
+      const goldAccent = new THREE.MeshStandardMaterial({ color: 0xD97706 });
+
+      // Widebody Long Fuselage (No Passenger Windows)
+      const fuseGeo = new THREE.CylinderGeometry(2.8, 2.8, 38, 16);
+      const fuselage = new THREE.Mesh(fuseGeo, bodyMat);
+      fuselage.rotation.z = Math.PI / 2;
+      fuselage.position.y = 4.5;
+      fuselage.castShadow = true;
+      plane.add(fuselage);
+
+      // Nose & Tail
+      const noseGeo = new THREE.ConeGeometry(2.8, 7, 16);
+      const nose = new THREE.Mesh(noseGeo, bodyMat);
+      nose.rotation.z = -Math.PI / 2;
+      nose.position.set(22.5, 4.5, 0);
+      nose.castShadow = true;
+      plane.add(nose);
+
+      const tailGeo = new THREE.ConeGeometry(2.8, 11, 16);
+      const tail = new THREE.Mesh(tailGeo, bodyMat);
+      tail.rotation.z = Math.PI / 2;
+      tail.position.set(-24.5, 4.8, 0);
+      tail.castShadow = true;
+      plane.add(tail);
+
+      // Cockpit Windshield
+      const cockpit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 3.2), darkMat);
+      cockpit.position.set(20.5, 5.8, 0);
+      cockpit.rotation.z = 0.25;
+      plane.add(cockpit);
+
+      // Main Deck Cargo Door (Open Outline on Port side)
+      const cargoDoor = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.5, 4.2),
+        new THREE.MeshStandardMaterial({ color: 0x0F172A })
+      );
+      cargoDoor.position.set(-6, 5.2, -2.85);
+      cargoDoor.rotation.y = Math.PI;
+      plane.add(cargoDoor);
+
+      // Large Swept Wings
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(11, 0.6, 36), bodyMat);
+      wing.position.set(2, 4.1, 0);
+      wing.rotation.y = 0.18;
+      wing.castShadow = true;
+      plane.add(wing);
+
+      // High-Bypass GE90 Engines
+      [-8.5, 8.5].forEach(ez => {
+        const nacelle = new THREE.Mesh(
+          new THREE.CylinderGeometry(2.2, 2.0, 7.5, 14, 1, true),
+          bodyMat
+        );
+        nacelle.rotation.z = Math.PI / 2;
+        nacelle.position.set(3, 2.5, ez);
+        nacelle.castShadow = true;
+        plane.add(nacelle);
+
+        const fan = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.2, 12), darkMat);
+        fan.rotation.z = -Math.PI / 2;
+        fan.position.set(4.6, 2.5, ez);
+        plane.add(fan);
+      });
+
+      // Tail Fin (Emirates Red / Gold Flag)
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(7, 10, 0.6), redAccent);
+      fin.position.set(-23.5, 10.5, 0);
+      fin.rotation.z = 0.45;
+      fin.castShadow = true;
+      plane.add(fin);
+
+      // Landing Gear
+      const gearMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+      const nStrut = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 3.5, 8), gearMat);
+      nStrut.position.set(18, 1.8, 0);
+      plane.add(nStrut);
+
+      [-4.5, 4.5].forEach(gx => {
+        const mStrut = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 3.5, 8), gearMat);
+        mStrut.position.set(0, 1.8, gx);
+        plane.add(mStrut);
+      });
+
+      plane.userData = {
+        id: flightNum,
+        name: `${flightNum} (B777F Freighter)`,
+        flightNum: flightNum,
+        reg: reg,
+        type: 'Boeing 777F Freighter',
+        airline: airline,
+        category: 'Cargo Aircraft',
+        state: 'LOADING ULD',
+        assignedStand: 'Cargo C1',
+        speed: 0,
+        altitude: 0,
+        fuel: 48.0,
+        pax: 0,
+        origin: 'DXB',
+        dest: 'SNJ',
+        mesh: plane
+      };
+
+      clickableObjects.push(fuselage);
+      fuselage.userData = plane.userData;
+      entityRegistry.set(flightNum, plane.userData);
+
+      return plane;
+    }
+
+    function createCargoForklift() {
+      const fl = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(4.2, 2.2, 2.6),
+        new THREE.MeshStandardMaterial({ color: 0xF59E0B, roughness: 0.6 })
+      );
+      body.position.y = 1.3;
+      body.castShadow = true;
+      fl.add(body);
+
+      // Cage
+      const cage = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 2.0, 2.4),
+        new THREE.MeshStandardMaterial({ color: 0x1E293B, wireframe: true })
+      );
+      cage.position.set(-0.4, 3.1, 0);
+      fl.add(cage);
+
+      // Vertical Mast & Tines (with ULD container)
+      fl.mastGroup = new THREE.Group();
+      fl.mastGroup.position.set(2.4, 0.5, 0);
+
+      const mast = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.5, 2.2), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+      mast.position.y = 2.25;
+      fl.mastGroup.add(mast);
+
+      // Fork Carriage & ULD
+      fl.tines = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.2, 1.8), new THREE.MeshStandardMaterial({ color: 0x111827 }));
+      fl.tines.position.set(1.1, 0.6, 0);
+      fl.mastGroup.add(fl.tines);
+
+      const carriedULD = new THREE.Mesh(
+        new THREE.BoxGeometry(2.6, 2.0, 2.4),
+        new THREE.MeshStandardMaterial({ color: 0x3B82F6, roughness: 0.5 })
+      );
+      carriedULD.position.set(1.4, 1.7, 0);
+      carriedULD.castShadow = true;
+      fl.mastGroup.add(carriedULD);
+
+      fl.add(fl.mastGroup);
+
+      // Wheels
+      const wMat = new THREE.MeshStandardMaterial({ color: 0x0F172A });
+      [[-1.4, -1.3], [-1.4, 1.3], [1.4, -1.3], [1.4, 1.3]].forEach(([wx, wz]) => {
+        const w = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.45, 8), wMat);
+        w.rotation.x = Math.PI / 2;
+        w.position.set(wx, 0.55, wz);
+        fl.add(w);
+      });
+
+      fl.userData = { id: "FL-01", name: "Cargo Heavy Forklift FL-01", category: "Vehicle", type: "Forklift", speed: 6, mesh: fl };
+      clickableObjects.push(body);
+      body.userData = fl.userData;
+      entityRegistry.set("FL-01", fl.userData);
+
+      return fl;
+    }
+
     /* --------------------------------------------------------------------------
-       LANDSIDE FORECOURT: ROADS, CAR PARKS & PALM TREES
+       LANDSIDE FORECOURT
        -------------------------------------------------------------------------- */
     function buildLandsideForecourt() {
       const landsideGroup = new THREE.Group();
@@ -1803,7 +2011,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       PROCEDURAL AIRCRAFT GENERATOR (A320neo)
+       PROCEDURAL A320neo AIRFRAME
        -------------------------------------------------------------------------- */
     function createProceduralA320(flightNum, reg, airline, liveryColor) {
       const plane = new THREE.Group();
@@ -1813,6 +2021,7 @@
       const darkMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
       const glassMat = new THREE.MeshBasicMaterial({ color: 0x1E293B });
 
+      // Fuselage
       const fuselageGeo = new THREE.CylinderGeometry(2.1, 2.1, 28, 16);
       const fuselage = new THREE.Mesh(fuselageGeo, bodyMat);
       fuselage.rotation.z = Math.PI / 2;
@@ -1820,6 +2029,7 @@
       fuselage.castShadow = true;
       plane.add(fuselage);
 
+      // Nose & Tail
       const noseGeo = new THREE.ConeGeometry(2.1, 5.5, 16);
       const nose = new THREE.Mesh(noseGeo, bodyMat);
       nose.rotation.z = -Math.PI / 2;
@@ -1834,6 +2044,7 @@
       tailCone.castShadow = true;
       plane.add(tailCone);
 
+      // Cockpit & Windows
       const cockpitGeo = new THREE.BoxGeometry(1.8, 0.9, 2.6);
       const cockpit = new THREE.Mesh(cockpitGeo, glassMat);
       cockpit.position.set(15.2, 4.7, 0);
@@ -1848,6 +2059,7 @@
         });
       }
 
+      // Swept Wings with Sharklets
       const wingGeo = new THREE.BoxGeometry(9, 0.45, 26);
       const wings = new THREE.Mesh(wingGeo, bodyMat);
       wings.position.set(1, 3.2, 0);
@@ -1863,6 +2075,7 @@
         plane.add(sharklet);
       });
 
+      // Turbofan Engines
       plane.engines = [];
       [-6.5, 6.5].forEach(engZ => {
         const engGroup = new THREE.Group();
@@ -1887,6 +2100,7 @@
         plane.engines.push(spinner);
       });
 
+      // Tail Fin
       const tailFinGeo = new THREE.BoxGeometry(5.5, 7.5, 0.5);
       const tailFin = new THREE.Mesh(tailFinGeo, accentMat);
       tailFin.position.set(-17.5, 8.5, 0);
@@ -1900,6 +2114,7 @@
       hStab.castShadow = true;
       plane.add(hStab);
 
+      // Landing Gear
       plane.gearGroup = new THREE.Group();
 
       const noseStrut = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.2, 8), darkMat);
@@ -1923,6 +2138,7 @@
 
       plane.add(plane.gearGroup);
 
+      // Nav Lights
       const redNav = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), new THREE.MeshBasicMaterial({ color: 0xFF0000 }));
       redNav.position.set(1.5, 4.3, 13.2);
       plane.add(redNav);
@@ -1957,7 +2173,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       GROUND SUPPORT EQUIPMENT (GSE)
+       GROUND SUPPORT VEHICLES
        -------------------------------------------------------------------------- */
     function createPushbackTug() {
       const tug = new THREE.Group();
@@ -2073,52 +2289,58 @@
     }
 
     /* --------------------------------------------------------------------------
-       SPAWN LIFE & SCHEDULE ENGINE
+       SIMULATION ENTITIES SPAWN
        -------------------------------------------------------------------------- */
     let plane1, plane2;
     let pushbackTug, baggageTrain, cateringTruck;
 
     function spawnSimulationEntities() {
+      // Aircraft 1: AI-742 (At Gate A3)
       plane1 = createProceduralA320('AI-742', 'VT-EXA', 'Air India', PALETTE.accent);
       plane1.position.set(0, 0, 8);
-      plane1.rotation.y = -Math.PI / 2;
+      plane1.rotation.set(0, 0, 0); // Facing south (+Z) towards taxiway
       plane1.userData.state = 'TURNAROUND';
       plane1.userData.stateTimer = 0;
       plane1.userData.assignedStand = 'A3';
       aircraftList.push(plane1);
       scene.add(plane1);
 
+      // Aircraft 2: 6E-203 (Inbound on Final Approach)
       plane2 = createProceduralA320('6E-203', 'VT-IFR', 'IndiGo', 0x0284C7);
-      plane2.position.set(-180, 28, -75);
-      plane2.rotation.y = Math.PI / 2;
+      plane2.position.set(-220, 32, -75);
+      plane2.rotation.set(0, Math.PI / 2, 0); // Heading East (090°)
       plane2.userData.state = 'APPROACH';
       plane2.userData.stateTimer = 0;
       plane2.userData.assignedStand = 'A1';
       aircraftList.push(plane2);
       scene.add(plane2);
 
+      // Pushback Tug
       pushbackTug = createPushbackTug();
-      pushbackTug.position.set(0, 0, 24);
-      pushbackTug.rotation.y = Math.PI / 2;
+      pushbackTug.position.set(0, 0, 18);
+      pushbackTug.rotation.y = 0;
       vehicleList.push(pushbackTug);
       scene.add(pushbackTug);
 
+      // Baggage Train
       baggageTrain = createBaggageTrain();
-      baggageTrain.position.set(38, 0, 18);
+      baggageTrain.position.set(32, 0, 20);
       vehicleList.push(baggageTrain);
       scene.add(baggageTrain);
 
+      // Catering Truck
       cateringTruck = createCateringTruck();
-      cateringTruck.position.set(-35, 0, 16);
+      cateringTruck.position.set(-4, 0, 9);
+      cateringTruck.rotation.y = -Math.PI / 2;
       vehicleList.push(cateringTruck);
       scene.add(cateringTruck);
     }
 
     /* --------------------------------------------------------------------------
-       WEATHER & PARTICLE SYSTEMS
+       WEATHER & PARTICLES
        -------------------------------------------------------------------------- */
     function setupWeatherParticles() {
-      const pCount = 2500;
+      const pCount = 2000;
       particleGeo = new THREE.BufferGeometry();
       const positions = new Float32Array(pCount * 3);
 
@@ -2150,9 +2372,9 @@
 
       const pos = particleGeo.attributes.position.array;
       const count = pos.length / 3;
+      const fallSpeed = AppState.season === 'monsoon' ? 2.5 : 0.45;
 
       for (let i = 0; i < count; i++) {
-        const fallSpeed = AppState.season === 'monsoon' ? 2.5 : 0.45;
         pos[i * 3 + 1] -= fallSpeed;
 
         if (AppState.season === 'snow') {
@@ -2178,20 +2400,23 @@
     }
 
     /* --------------------------------------------------------------------------
-       LIFE CYCLE UPDATE LOOP
+       LIFE CYCLE UPDATE LOOP (SMOOTH FLIGHT & TAXIING KINEMATICS)
        -------------------------------------------------------------------------- */
     function updateSimulation(delta) {
       if (radarDish) {
         radarDish.rotation.y += delta * 1.5;
       }
 
+      // Fan Blades rotation
       aircraftList.forEach(ac => {
         if (ac.engines) {
           ac.engines.forEach(eng => { eng.rotation.x += delta * 25; });
         }
       });
 
-      // Aircraft 1 Loop
+      // ----------------------------------------------------------------------
+      // AIRCRAFT 1: AI-742 (Full Flight Cycle: Pushback -> Taxi -> Takeoff -> Circuit -> Landing)
+      // ----------------------------------------------------------------------
       const a1 = plane1;
       a1.userData.stateTimer += delta;
 
@@ -2209,126 +2434,222 @@
           window.triggerNotification('AI-742 starting pushback from Stand A3. Ground crew clear.');
         }
       } else if (a1.userData.state === 'PUSHBACK') {
-        if (a1.position.z < 28) {
+        // Smooth pushback arc out of Gate A3 onto taxiway (Z = 24)
+        if (a1.position.z < 24) {
           a1.position.z += delta * 2.2;
           pushbackTug.position.z = a1.position.z + 8;
+          // Slight turn during final push
+          if (a1.position.z > 16) {
+            a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, -Math.PI / 2, delta * 1.5);
+          }
         } else {
-          a1.userData.state = 'TAXI_OUT';
+          a1.rotation.y = -Math.PI / 2; // Facing West towards Taxiway link
+          a1.userData.state = 'TAXI_TO_HOLD';
           a1.userData.stateTimer = 0;
-          window.triggerNotification('AI-742 pushback completed. Taxiing via Bravo to Holding Point 09L.');
+          // Pushback tug returns to depot
+          pushbackTug.position.set(6, 0, 18);
+          pushbackTug.rotation.y = 0;
+          window.triggerNotification('AI-742 pushback completed. Taxiing via Alpha to Runway 09L.');
         }
-      } else if (a1.userData.state === 'TAXI_OUT') {
-        if (a1.rotation.y > -Math.PI) a1.rotation.y -= delta * 0.8;
+      } else if (a1.userData.state === 'TAXI_TO_HOLD') {
+        // Taxi along Apron Taxiway (Z = 24) westwards to Taxiway Link (X = -70)
         if (a1.position.x > -70) {
-          a1.position.x -= delta * 5.5;
-        } else if (a1.position.z > -75) {
+          a1.position.x -= delta * 6.5;
           a1.rotation.y = -Math.PI / 2;
-          a1.position.z -= delta * 5.5;
+        } else if (a1.position.z > -75) {
+          // Turn right (heading North) onto West Taxiway link to runway
+          a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, 0, delta * 3);
+          a1.position.z -= delta * 6.5;
         } else {
+          // Holding point reached -> Lineup
           a1.userData.state = 'LINEUP_TAKEOFF';
           a1.position.set(-70, 0, -75);
-          a1.rotation.y = Math.PI / 2;
+          a1.rotation.set(0, Math.PI / 2, 0); // Align with Runway 09L (East)
           window.triggerNotification('AI-742 cleared for immediate takeoff Runway 09L. Wind 090/10kt.');
         }
       } else if (a1.userData.state === 'LINEUP_TAKEOFF') {
-        a1.position.x += delta * 22;
+        // Ground Roll Acceleration along Runway Centerline (Z = -75)
+        a1.position.x += delta * 24;
+        a1.position.z = -75;
+
+        // Rotation & Lift-off at X = 10
         if (a1.position.x > 10) {
-          a1.position.y += delta * 8;
-          a1.rotation.z = -0.15;
-          if (a1.gearGroup) a1.gearGroup.position.y = Math.max(-2, a1.gearGroup.position.y - delta * 2);
+          a1.position.y += delta * 9;
+          a1.rotation.z = -0.18; // Pitch up
+          // Retract landing gear
+          if (a1.gearGroup) a1.gearGroup.position.y = Math.max(-2, a1.gearGroup.position.y - delta * 2.5);
         }
-        if (a1.position.x > 180) {
-          a1.position.set(-220, 35, -75);
+
+        // Climb-out and Departure Turn
+        if (a1.position.x > 110) {
+          a1.userData.state = 'CLIMB_DEPARTURE';
+          a1.userData.stateTimer = 0;
+        }
+      } else if (a1.userData.state === 'CLIMB_DEPARTURE') {
+        // Climbing right-hand bank into traffic pattern
+        a1.position.x += delta * 18;
+        a1.position.y = Math.min(45, a1.position.y + delta * 8);
+        a1.rotation.x = THREE.MathUtils.lerp(a1.rotation.x, 0.28, delta * 2); // Bank right
+        a1.rotation.y += delta * 0.45; // Turn right
+        a1.position.z += delta * 12;
+
+        if (a1.position.x > 210) {
+          a1.userData.state = 'CIRCUIT';
+          a1.userData.stateTimer = 0;
+        }
+      } else if (a1.userData.state === 'CIRCUIT') {
+        // High altitude holding/traffic pattern loop
+        const ct = a1.userData.stateTimer;
+        const radius = 140;
+        a1.position.x = Math.sin(ct * 0.35) * radius;
+        a1.position.z = Math.cos(ct * 0.35) * 60 - 75;
+        a1.position.y = 45;
+        a1.rotation.y = ct * 0.35 + Math.PI / 2;
+        a1.rotation.x = 0.2; // Bank angle
+        a1.rotation.z = 0;
+
+        if (ct > 16) {
+          // Re-enter Final Approach
+          a1.position.set(-240, 35, -75);
           a1.rotation.set(0, Math.PI / 2, 0);
           if (a1.gearGroup) a1.gearGroup.position.y = 0;
           a1.userData.state = 'APPROACH';
           a1.userData.stateTimer = 0;
         }
       } else if (a1.userData.state === 'APPROACH') {
-        a1.position.x += delta * 16;
-        a1.position.y = Math.max(0, a1.position.y - delta * 3.5);
-        if (a1.position.y <= 0.05 && a1.position.x >= -110) {
+        // 3-degree Glide slope descent straight down Runway 09L centerline
+        a1.position.x += delta * 18;
+        a1.position.z = -75;
+        a1.position.y = Math.max(0, a1.position.y - delta * 3.2);
+        a1.rotation.set(0, Math.PI / 2, -0.04); // Shallow glide angle
+
+        // Touchdown at X = -90
+        if (a1.position.y <= 0.05 && a1.position.x >= -90) {
           a1.position.y = 0;
+          a1.rotation.z = 0;
           a1.userData.state = 'ROLLOUT';
-          window.triggerNotification('AI-742 touchdown Runway 09L. Decelerating.');
+          window.triggerNotification('AI-742 touchdown Runway 09L. Thrust reversers deployed.');
         }
       } else if (a1.userData.state === 'ROLLOUT') {
-        a1.position.x += delta * 12;
+        // Deceleration down runway to East exit (X = 70)
+        a1.position.x += delta * 14;
+        a1.position.z = -75;
         if (a1.position.x >= 70) {
           a1.userData.state = 'TAXI_TO_GATE';
-          a1.rotation.y = Math.PI;
+          a1.position.x = 70;
         }
       } else if (a1.userData.state === 'TAXI_TO_GATE') {
-        if (a1.position.z < 28) {
-          a1.position.z += delta * 5.5;
+        // Realistic Taxi Route: East Taxiway (South along Z) -> Apron (West along X) -> Stand A3
+        if (a1.position.z < 24) {
+          // Rolling south along taxiway link
+          a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, 0, delta * 3);
+          a1.position.z += delta * 6;
         } else if (a1.position.x > 0) {
-          a1.rotation.y = -Math.PI;
-          a1.position.x -= delta * 5.5;
+          // Turning right (heading West) along main apron taxiway
+          a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, -Math.PI / 2, delta * 3);
+          a1.position.x -= delta * 6;
+        } else if (a1.position.z > 8) {
+          // Turning right (heading North) into Stand A3 lead-in
+          a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, -Math.PI, delta * 3);
+          a1.position.z -= delta * 4;
         } else {
+          // Docked at Stand A3
           a1.position.set(0, 0, 8);
-          a1.rotation.y = -Math.PI / 2;
+          a1.rotation.set(0, 0, 0); // Facing south (+Z)
           a1.userData.state = 'TURNAROUND';
           a1.userData.stateTimer = 0;
+          window.triggerNotification('AI-742 on block at Stand A3. Chocks inserted.');
         }
       }
 
-      // Aircraft 2 Loop
+      // ----------------------------------------------------------------------
+      // AIRCRAFT 2: 6E-203 (IndiGo) — Realistic Approach & Docking
+      // ----------------------------------------------------------------------
       const a2 = plane2;
       if (a2.userData.state === 'APPROACH') {
-        a2.position.x += delta * 15;
+        a2.position.x += delta * 16;
+        a2.position.z = -75;
         a2.position.y = Math.max(0, a2.position.y - delta * 2.8);
-        if (a2.position.y <= 0.05 && a2.position.x > -90) {
+        a2.rotation.set(0, Math.PI / 2, -0.03);
+
+        if (a2.position.y <= 0.05 && a2.position.x >= -90) {
           a2.position.y = 0;
+          a2.rotation.z = 0;
           a2.userData.state = 'ROLLOUT';
-          window.triggerNotification('IndiGo 6E-203 landed safely on Runway 09L.');
+          window.triggerNotification('IndiGo 6E-203 touchdown Runway 09L.');
         }
       } else if (a2.userData.state === 'ROLLOUT') {
-        a2.position.x += delta * 10;
+        a2.position.x += delta * 12;
+        a2.position.z = -75;
         if (a2.position.x >= 70) {
           a2.userData.state = 'TAXI_TO_GATE';
+          a2.position.x = 70;
         }
       } else if (a2.userData.state === 'TAXI_TO_GATE') {
-        if (a2.position.z < 28) {
-          a2.rotation.y = 0;
-          a2.position.z += delta * 5;
+        if (a2.position.z < 24) {
+          a2.rotation.y = THREE.MathUtils.lerp(a2.rotation.y, 0, delta * 3);
+          a2.position.z += delta * 5.5;
         } else if (a2.position.x > -50) {
-          a2.rotation.y = -Math.PI;
-          a2.position.x -= delta * 5;
+          a2.rotation.y = THREE.MathUtils.lerp(a2.rotation.y, -Math.PI / 2, delta * 3);
+          a2.position.x -= delta * 5.5;
         } else if (a2.position.z > 8) {
-          a2.rotation.y = -Math.PI / 2;
-          a2.position.z -= delta * 3;
+          a2.rotation.y = THREE.MathUtils.lerp(a2.rotation.y, -Math.PI, delta * 3);
+          a2.position.z -= delta * 3.5;
         } else {
+          a2.position.set(-50, 0, 8);
+          a2.rotation.set(0, 0, 0);
           a2.userData.state = 'TURNAROUND';
           a2.userData.stateTimer = 0;
+          window.triggerNotification('IndiGo 6E-203 docked at Stand A1.');
         }
       } else if (a2.userData.state === 'TURNAROUND') {
         a2.userData.stateTimer += delta;
-        if (a2.userData.stateTimer > 18) {
-          a2.position.set(-190, 32, -75);
+        if (a2.userData.stateTimer > 20) {
+          a2.position.set(-240, 35, -75);
           a2.rotation.set(0, Math.PI / 2, 0);
           a2.userData.state = 'APPROACH';
           a2.userData.stateTimer = 0;
         }
       }
 
-      // Baggage train movement
-      if (baggageTrain) {
-        baggageTrain.position.x = 25 + Math.sin(Date.now() * 0.0008) * 35;
-        baggageTrain.rotation.y = Math.sin(Date.now() * 0.0008) > 0 ? 0 : Math.PI;
+      // ----------------------------------------------------------------------
+      // CARGO FORKLIFT MOVEMENT (Between Cargo Warehouse and Freighter)
+      // ----------------------------------------------------------------------
+      if (cargoForklift) {
+        const fTime = Date.now() * 0.001;
+        const fCycle = (Math.sin(fTime * 0.8) + 1) * 0.5; // 0 to 1
+        // Move between warehouse (Z = -22) and freighter (Z = -12)
+        cargoForklift.position.z = -22 + fCycle * 10;
+        cargoForklift.rotation.y = Math.cos(fTime * 0.8) > 0 ? 0 : Math.PI;
+
+        // Animate lifting tines
+        if (cargoForklift.mastGroup) {
+          cargoForklift.mastGroup.position.y = 0.5 + Math.sin(fTime * 1.5) * 1.2;
+        }
       }
 
-      // Camera Glide / Transition Logic (Stops lerping once reached)
+      // ----------------------------------------------------------------------
+      // BAGGAGE TUG PATROL
+      // ----------------------------------------------------------------------
+      if (baggageTrain) {
+        baggageTrain.position.x = 20 + Math.sin(Date.now() * 0.0006) * 35;
+        baggageTrain.rotation.y = Math.sin(Date.now() * 0.0006) > 0 ? 0 : Math.PI;
+      }
+
+      // ----------------------------------------------------------------------
+      // CAMERA FOLLOW & TRANSITION (Using Scratch Vectors)
+      // ----------------------------------------------------------------------
       if (AppState.cameraFollowing && AppState.selectedObject) {
         const mesh = AppState.selectedObject.mesh || AppState.selectedObject;
-        const targetWorldPos = new THREE.Vector3();
-        mesh.getWorldPosition(targetWorldPos);
-        controls.target.lerp(targetWorldPos, 0.08);
-        camera.position.lerp(new THREE.Vector3(targetWorldPos.x + 28, targetWorldPos.y + 24, targetWorldPos.z + 36), 0.06);
+        mesh.getWorldPosition(_scratchTargetWorldPos);
+        controls.target.lerp(_scratchTargetWorldPos, 0.08);
+
+        _scratchVec1.set(_scratchTargetWorldPos.x + 28, _scratchTargetWorldPos.y + 24, _scratchTargetWorldPos.z + 36);
+        camera.position.lerp(_scratchVec1, 0.06);
       } else if (AppState.isCameraTransitioning) {
         camera.position.lerp(AppState.cameraTargetPos, 0.07);
         controls.target.lerp(AppState.cameraTargetLook, 0.07);
 
-        // Check if transition reached threshold
         if (camera.position.distanceTo(AppState.cameraTargetPos) < 0.6) {
           AppState.isCameraTransitioning = false;
         }
@@ -2338,14 +2659,14 @@
     }
 
     /* --------------------------------------------------------------------------
-       PROCEDURAL LIVE CCTV SCREEN (CANVAS DRAW)
+       THROTTLED CCTV APRON MONITOR (Runs at 10 FPS to eliminate GPU stalls)
        -------------------------------------------------------------------------- */
     let cctvCanvas, cctvCtx;
     const CCTV_FEEDS = [
       { name: "CAM 01 • STAND A3", type: "apron" },
       { name: "CAM 02 • RUNWAY 09L", type: "runway" },
       { name: "CAM 03 • TOWER 360", type: "radar" },
-      { name: "CAM 04 • CARGO BAY", type: "cargo" }
+      { name: "CAM 04 • CARGO HUB", type: "cargo" }
     ];
 
     function initCCTVFeed() {
@@ -2358,18 +2679,20 @@
 
     function renderCCTVFrame() {
       if (!cctvCtx) return;
+      const now = performance.now();
+      // Throttle to 10 FPS (100ms) to prevent GPU readback stall & freezing
+      if (now - AppState.lastCCTVTime < 100) return;
+      AppState.lastCCTVTime = now;
+
       const w = cctvCanvas.width;
       const h = cctvCanvas.height;
-      const now = Date.now();
 
-      // Clear dark background
-      cctvCtx.fillStyle = '#060A12';
+      cctvCtx.fillStyle = '#060910';
       cctvCtx.fillRect(0, 0, w, h);
 
       const feed = CCTV_FEEDS[AppState.cctvFeedIdx] || CCTV_FEEDS[0];
 
       if (feed.type === 'radar') {
-        // Radar Sweep View
         cctvCtx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
         cctvCtx.lineWidth = 1;
         const cx = w / 2, cy = h / 2;
@@ -2378,14 +2701,12 @@
           cctvCtx.arc(cx, cy, r, 0, Math.PI * 2);
           cctvCtx.stroke();
         });
-        // Crosshairs
         cctvCtx.beginPath();
         cctvCtx.moveTo(cx, 0); cctvCtx.lineTo(cx, h);
         cctvCtx.moveTo(0, cy); cctvCtx.lineTo(w, cy);
         cctvCtx.stroke();
 
-        // Sweep Line
-        const angle = (now * 0.002) % (Math.PI * 2);
+        const angle = (now * 0.0015) % (Math.PI * 2);
         cctvCtx.strokeStyle = 'rgba(16, 185, 129, 0.9)';
         cctvCtx.lineWidth = 2;
         cctvCtx.beginPath();
@@ -2393,13 +2714,11 @@
         cctvCtx.lineTo(cx + Math.cos(angle) * 60, cy + Math.sin(angle) * 60);
         cctvCtx.stroke();
 
-        // Targets
         cctvCtx.fillStyle = '#FF6A1A';
         cctvCtx.fillRect(cx + 25, cy - 15, 4, 4);
         cctvCtx.fillStyle = '#38BDF8';
         cctvCtx.fillRect(cx - 35, cy + 10, 4, 4);
       } else {
-        // Perspective Apron / Runway Camera Simulation
         cctvCtx.fillStyle = '#111827';
         cctvCtx.beginPath();
         cctvCtx.moveTo(0, h * 0.4);
@@ -2408,37 +2727,35 @@
         cctvCtx.lineTo(0, h);
         cctvCtx.fill();
 
-        // Centerline markings
         cctvCtx.strokeStyle = feed.type === 'runway' ? 'rgba(255,255,255,0.7)' : 'rgba(251, 191, 36, 0.8)';
         cctvCtx.lineWidth = 2;
         cctvCtx.setLineDash([8, 8]);
         cctvCtx.beginPath();
         cctvCtx.moveTo(w * 0.5, h * 0.4);
-        cctvCtx.lineTo(w * 0.45 + Math.sin(now * 0.001) * 8, h);
+        cctvCtx.lineTo(w * 0.45 + Math.sin(now * 0.0008) * 8, h);
         cctvCtx.stroke();
         cctvCtx.setLineDash([]);
 
         // Aircraft Silhouette
         cctvCtx.fillStyle = '#E2E8F0';
-        const px = w * 0.52 + Math.sin(now * 0.0008) * 15;
+        const px = w * 0.52 + Math.sin(now * 0.0006) * 15;
         const py = h * 0.55;
         cctvCtx.beginPath();
         cctvCtx.ellipse(px, py, 26, 6, 0, 0, Math.PI * 2);
         cctvCtx.fill();
-        // Tail
         cctvCtx.fillStyle = '#FF6A1A';
         cctvCtx.fillRect(px - 22, py - 12, 5, 12);
       }
 
       // CRT Scanlines
       cctvCtx.fillStyle = 'rgba(0, 0, 0, 0.22)';
-      for (let y = 0; y < h; y += 3) {
+      for (let y = 0; y < h; y += 4) {
         cctvCtx.fillRect(0, y, w, 1);
       }
     }
 
     /* --------------------------------------------------------------------------
-       FLOATING 3D HUD & SELECTION
+       FLOATING 3D HUD & SELECTION (Zero garbage collection)
        -------------------------------------------------------------------------- */
     function updateFloatingHUD() {
       const hud = document.getElementById('hud-anchor');
@@ -2448,14 +2765,13 @@
       }
 
       const target = AppState.selectedObject.mesh || AppState.selectedObject;
-      const targetPos = new THREE.Vector3();
-      target.getWorldPosition(targetPos);
-      targetPos.y += 4.5;
+      target.getWorldPosition(_scratchTargetWorldPos);
+      _scratchTargetWorldPos.y += 4.5;
 
-      const screenPos = targetPos.clone().project(camera);
-      if (screenPos.z < 1) {
-        const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
-        const y = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
+      _scratchScreenPos.copy(_scratchTargetWorldPos).project(camera);
+      if (_scratchScreenPos.z < 1) {
+        const x = (_scratchScreenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(_scratchScreenPos.y * 0.5) + 0.5) * window.innerHeight;
         hud.style.left = `${x}px`;
         hud.style.top = `${y}px`;
         hud.style.display = 'block';
@@ -2483,7 +2799,7 @@
       if (entity.fuel) {
         document.getElementById('dp-fuel').textContent = `${entity.fuel} / 18.0 t`;
       }
-      if (entity.pax) {
+      if (entity.pax !== undefined) {
         document.getElementById('dp-pax').textContent = `${entity.pax} / 180`;
       }
 
@@ -2491,7 +2807,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       INTERACTION & RAYCASTING
+       INTERACTION
        -------------------------------------------------------------------------- */
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -2519,7 +2835,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       GLOBAL API HOOKS (Attached directly to window)
+       WINDOW API HOOKS
        -------------------------------------------------------------------------- */
     window.flyToArea = function(areaKey, btn) {
       if (btn) {
@@ -2669,6 +2985,10 @@
         window.selectEntityById('AI-742');
       } else if (q.includes('6e') || q.includes('203') || q.includes('indigo')) {
         window.selectEntityById('6E-203');
+      } else if (q.includes('ek') || q.includes('992') || q.includes('cargo') || q.includes('freight')) {
+        window.selectEntityById('EK-992');
+      } else if (q.includes('fork') || q.includes('lift') || q.includes('fl')) {
+        window.selectEntityById('FL-01');
       } else if (q.includes('a1') || q.includes('a2') || q.includes('a3') || q.includes('a4') || q.includes('a5')) {
         window.focusStand(q.toUpperCase());
       } else if (q.includes('tug') || q.includes('push')) {
@@ -2682,10 +3002,16 @@
       const toast = document.getElementById('alert-toast');
       document.getElementById('toast-msg').textContent = msg;
       toast.classList.add('show');
-      setTimeout(() => { toast.classList.remove('show'); }, 4200);
+      if (AppState.toastTimer) clearTimeout(AppState.toastTimer);
+      AppState.toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 4200);
     };
 
     function updateTurnaroundUI(elapsedSec) {
+      // Throttle turnaround updates to once per 500ms
+      const now = performance.now();
+      if (now - AppState.lastTurnaroundUpdate < 500) return;
+      AppState.lastTurnaroundUpdate = now;
+
       const steps = [
         { id: 'step-0', name: 'On block', time: '18:12', dur: 2 },
         { id: 'step-1', name: 'Deboard', time: '18:14', dur: 4 },
@@ -2730,7 +3056,7 @@
               <tr onclick="window.focusStand('A2')"><td><b>A2</b></td><td>AK-315</td><td>AirAsia</td><td>A320-200</td><td><span style="color:var(--status-green)">● Ready</span></td><td>18:50</td></tr>
               <tr class="selected" onclick="window.focusStand('A3')"><td><b>A3</b></td><td>AI-742</td><td>Air India</td><td>A320neo</td><td><span style="color:var(--accent)">● Turnaround</span></td><td>18:43</td></tr>
               <tr onclick="window.focusStand('A4')"><td><b>A4</b></td><td>SG-816</td><td>SpiceJet</td><td>B737-800</td><td><span style="color:var(--status-blue)">● Boarding</span></td><td>18:30</td></tr>
-              <tr onclick="window.focusStand('A5')"><td><b>A5</b></td><td>QP-1102</td><td>Akasa Air</td><td>B737 MAX</td><td><span style="color:var(--status-green)">● Open</span></td><td>--:--</td></tr>
+              <tr onclick="window.selectEntityById('EK-992')"><td><b>C1 (Cargo)</b></td><td>EK-992</td><td>SkyCargo</td><td>B777F</td><td><span style="color:var(--status-orange)">● Loading</span></td><td>19:20</td></tr>
             </tbody>
           </table>
         `;
@@ -2744,8 +3070,8 @@
               <tr onclick="window.selectEntityById('T-01')"><td><b>T-01</b></td><td>Pushback Tug</td><td>Stand A3</td><td>8 kts</td><td>94%</td><td><span style="color:var(--accent)">Active</span></td></tr>
               <tr onclick="window.selectEntityById('BT-04')"><td><b>BT-04</b></td><td>Baggage Tug</td><td>Apron Inner</td><td>12 kts</td><td>88%</td><td><span style="color:var(--status-green)">Moving</span></td></tr>
               <tr onclick="window.selectEntityById('CT-02')"><td><b>CT-02</b></td><td>Catering Hi-Lift</td><td>Stand A3</td><td>0 kts</td><td>91%</td><td><span style="color:var(--status-orange)">Docked</span></td></tr>
+              <tr onclick="window.selectEntityById('FL-01')"><td><b>FL-01</b></td><td>Cargo Forklift</td><td>Cargo Hub</td><td>6 kts</td><td>96%</td><td><span style="color:var(--status-green)">Loading ULD</span></td></tr>
               <tr><td><b>FP-07</b></td><td>Fuel Hydrant Dispenser</td><td>Stand A3</td><td>0 kts</td><td>100%</td><td><span style="color:var(--status-green)">Pumping</span></td></tr>
-              <tr><td><b>CB-09</b></td><td>Crew Shuttle Bus</td><td>Terminal Gate</td><td>15 kts</td><td>79%</td><td><span style="color:var(--status-blue)">En Route</span></td></tr>
             </tbody>
           </table>
         `;
@@ -2758,8 +3084,8 @@
             <tbody>
               <tr class="selected" onclick="window.selectEntityById('AI-742')"><td><b>AI-742</b></td><td>BLR ➔ SNJ</td><td>18:12 / 18:45</td><td>A3</td><td>168</td><td>14.2 t</td></tr>
               <tr onclick="window.selectEntityById('6E-203')"><td><b>6E-203</b></td><td>DEL ➔ SNJ</td><td>18:35 / 19:10</td><td>A1</td><td>174</td><td>15.8 t</td></tr>
+              <tr onclick="window.selectEntityById('EK-992')"><td><b>EK-992</b></td><td>DXB ➔ SNJ</td><td>17:30 / 18:15</td><td>C1 (Cargo)</td><td>0</td><td>48.0 t</td></tr>
               <tr><td><b>UK-821</b></td><td>BOM ➔ SNJ</td><td>18:50 / 19:30</td><td>A2</td><td>152</td><td>13.6 t</td></tr>
-              <tr><td><b>EK-504</b></td><td>DXB ➔ SNJ</td><td>19:15 / 20:00</td><td>Cargo</td><td>--</td><td>42.0 t</td></tr>
             </tbody>
           </table>
         `;
@@ -2781,7 +3107,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       ANIMATION LOOP
+       MAIN RENDER LOOP
        -------------------------------------------------------------------------- */
     let lastTime = performance.now();
     function animate() {
@@ -2794,7 +3120,7 @@
       controls.update();
       updateSimulation(delta);
       updateWeatherParticles(delta);
-      renderCCTVFrame();
+      renderCCTVFrame(); // Throttled to 10 FPS internally
 
       renderer.render(scene, camera);
     }
