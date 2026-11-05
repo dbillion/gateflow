@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Gateflow — Sanjai International Airport Operations 3D</title>
+  <title>Gateflow — Oludayo's Airport Operations 3D</title>
   <!-- Inline SVG Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
 
@@ -322,12 +322,35 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      /* Right column stack: detail panel (top) + live table (bottom).
+         Reserve the table's full height (230px) + its 14px bottom gap + a 12px
+         gutter, so the two panels can never overlap; extra content scrolls. */
+      max-height: calc(100vh - 80px - 14px - 230px - 12px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      pointer-events: auto;
+    }
+
+    #detail-panel > * { flex-shrink: 0; }
+
+    #detail-panel::-webkit-scrollbar { width: 4px; }
+    #detail-panel::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    /* On very short screens there is no room for both: keep the detail panel
+       and let the table hide until there is space again. */
+    @media (max-height: 560px) {
+      #live-table-panel { display: none; }
+      #detail-panel { max-height: calc(100vh - 80px - 14px); }
     }
 
     .detail-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 10px;
       border-bottom: 1px solid var(--border-glass);
       padding-bottom: 10px;
     }
@@ -345,6 +368,8 @@
     }
 
     .status-pill {
+      flex-shrink: 0;
+      white-space: nowrap;
       display: inline-flex;
       align-items: center;
       padding: 3px 8px;
@@ -761,7 +786,7 @@
       content: "";
       position: absolute;
       bottom: -6px;
-      left: 50%;
+      left: calc(50% + var(--arrow-dx, 0px));
       transform: translateX(-50%);
       border-width: 6px 5px 0 5px;
       border-style: solid;
@@ -862,7 +887,7 @@
   <div id="hud-anchor">
     <div class="hud-tag">
       <div class="hud-dot"></div>
-      <span id="hud-text">VT-EXA (A320neo)</span>
+      <span id="hud-text">ET-AXA (A320neo)</span>
     </div>
   </div>
 
@@ -872,7 +897,7 @@
       <div class="brand-mark">✈</div>
       <div class="brand-text">
         <h1>Gateflow <span style="background:var(--accent); color:#fff; padding:1px 5px; border-radius:4px; font-size:9px;">LIVE</span></h1>
-        <span>Sanjai International Airport • SNJ</span>
+        <span>Oludayo's Airport • OLU</span>
       </div>
     </div>
 
@@ -934,8 +959,8 @@
   <div id="detail-panel" class="glass">
     <div class="detail-header">
       <div class="detail-title">
-        <h3 id="dp-title">AI-742 (A320neo)</h3>
-        <p id="dp-subtitle">Air India • Reg: VT-EXA</p>
+        <h3 id="dp-title">ET-742 (A320neo)</h3>
+        <p id="dp-subtitle">Ethiopian Airlines • Reg: ET-AXA</p>
       </div>
       <span class="status-pill" id="dp-status">ON BLOCK</span>
     </div>
@@ -961,14 +986,14 @@
     <!-- Flight Route -->
     <div class="flight-route-box">
       <div class="route-node">
-        <div class="code" id="dp-origin">BLR</div>
-        <div class="city">Bengaluru</div>
+        <div class="code" id="dp-origin">ADD</div>
+        <div class="city">Addis Ababa</div>
         <div style="font-size:9px; color:#888; margin-top:2px;" id="dp-sched-arr">STA 18:10</div>
       </div>
       <div style="color:var(--accent); font-weight:700;">✈ ────►</div>
       <div class="route-node">
-        <div class="code" id="dp-dest">SNJ</div>
-        <div class="city">Sanjai Int'l</div>
+        <div class="code" id="dp-dest">OLU</div>
+        <div class="city">Oludayo's</div>
         <div style="font-size:9px; color:#888; margin-top:2px;" id="dp-sched-dep">STD 18:55</div>
       </div>
     </div>
@@ -1011,7 +1036,7 @@
     <div class="tracker-header">
       <div class="tracker-title">
         <span>⏱️ Turnaround Tracker</span>
-        <span style="font-size:10px; color:var(--text-muted); font-weight:normal;" id="tt-flight-tag">AI-742 • A320neo • Stand A3</span>
+        <span style="font-size:10px; color:var(--text-muted); font-weight:normal;" id="tt-flight-tag">ET-742 • A320neo • Stand A3</span>
       </div>
       <div class="countdown-tag" id="tt-time-tag">T - 12 min</div>
     </div>
@@ -1064,7 +1089,7 @@
   <!-- NOTIFICATION TOAST -->
   <div id="alert-toast">
     <span style="color:var(--accent); font-size:16px;">⚡</span>
-    <span id="toast-msg">Welcome to Sanjai International Airport Apron Control</span>
+    <span id="toast-msg">Welcome to Oludayo's Airport Apron Control</span>
   </div>
 
   <!-- JAVASCRIPT APPLICATION -->
@@ -1187,8 +1212,8 @@
       overview: { pos: [90, 85, 110], look: [0, 0, 0] },
       terminal: { pos: [0, 40, 66], look: [0, 0, 16] },
       runway: { pos: [-80, 26, 62], look: [-80, 0, -20] },
-      cargo: { pos: [128, 38, 70], look: [128, 0, 12] },
-      hangar: { pos: [-128, 30, -32], look: [-120, 0, -40] },
+      cargo: { pos: [170, 44, 20], look: [128, 0, 10] },    // side-on, clear of the freighter's nose
+      hangar: { pos: [-112, 40, 14], look: [-128, 2, -32] }, // front-high, looking into the open bay
       landside: { pos: [0, 32, 118], look: [0, 0, 72] }
     };
 
@@ -1397,7 +1422,7 @@
           x: x,
           z: LAYOUT.STAND_Z,
           occupied: i === 2,
-          aircraft: i === 2 ? 'AI-742' : null,
+          aircraft: i === 2 ? 'ET-742' : null,
           category: 'Stand'
         };
         standList.push(standEntity);
@@ -1688,7 +1713,8 @@
 
       towerGroup.userData = {
         id: "TOWER",
-        name: "SNJ Air Traffic Control Tower",
+        name: "OLU Air Traffic Control Tower",
+        hudLabel: "Control Tower",
         category: "Facility",
         type: "Tower",
         stats: "VHF 118.700 MHz • Ground 121.900 MHz"
@@ -1704,7 +1730,7 @@
     /* --------------------------------------------------------------------------
        CARGO TERMINAL, FREIGHTER & MRO HANGAR
        -------------------------------------------------------------------------- */
-    let cargoFreighter, cargoForklift;
+    let cargoFreighter, cargoForklift, hangarRoof, hangarWallMat;
 
     function buildCargoAndHangar() {
       // 1. CARGO TERMINAL WAREHOUSE
@@ -1746,7 +1772,8 @@
 
       cargoGroup.userData = {
         id: "CARGO",
-        name: "SNJ Cargo Terminal & Logistics Hub",
+        name: "OLU Cargo Terminal & Logistics Hub",
+        hudLabel: "Cargo Terminal",
         category: "Cargo",
         stats: "Capacity: 1,200 Tonnes • Active ULDs: 480"
       };
@@ -1767,36 +1794,68 @@
       cargoForklift.position.set(128, 0, -3);
       scene.add(cargoForklift);
 
-      // 4. OPEN MRO HANGAR (West Wing)
+      // 4. OPEN MRO HANGAR (West Wing). Roof/walls fade to a cutaway (see updateHangarCutaway)
+      const HW = 54, HD = 36, HH = 14; // interior width (x), depth (z), wall height
       const hangarGroup = new THREE.Group();
       hangarGroup.position.set(-128, 0, -32);
 
-      const hwallMat = new THREE.MeshStandardMaterial({ color: PALETTE.clayWall, roughness: 0.7 });
-      const bwall = new THREE.Mesh(new THREE.BoxGeometry(36, 14, 1.5), hwallMat);
-      bwall.position.set(0, 7, -12);
+      hangarWallMat = new THREE.MeshStandardMaterial({ color: PALETTE.clayWall, roughness: 0.7, transparent: true });
+
+      const hfloor = new THREE.Mesh(
+        new THREE.PlaneGeometry(HW, HD),
+        new THREE.MeshStandardMaterial({ color: 0x64748B, roughness: 0.9 })
+      );
+      hfloor.rotation.x = -Math.PI / 2;
+      hfloor.position.set(0, 0.08, 0);
+      hfloor.receiveShadow = true;
+      hangarGroup.add(hfloor);
+
+      const bwall = new THREE.Mesh(new THREE.BoxGeometry(HW, HH, 1.5), hangarWallMat);
+      bwall.position.set(0, HH / 2, -HD / 2);
       bwall.castShadow = true;
       hangarGroup.add(bwall);
 
-      const lwall = new THREE.Mesh(new THREE.BoxGeometry(1.5, 14, 25), hwallMat);
-      lwall.position.set(-18, 7, 0.5);
+      const lwall = new THREE.Mesh(new THREE.BoxGeometry(1.5, HH, HD), hangarWallMat);
+      lwall.position.set(-HW / 2, HH / 2, 0);
       hangarGroup.add(lwall);
 
-      const rwall = new THREE.Mesh(new THREE.BoxGeometry(1.5, 14, 25), hwallMat);
-      rwall.position.set(18, 7, 0.5);
+      const rwall = new THREE.Mesh(new THREE.BoxGeometry(1.5, HH, HD), hangarWallMat);
+      rwall.position.set(HW / 2, HH / 2, 0);
       hangarGroup.add(rwall);
 
-      const hroof = new THREE.Mesh(new THREE.BoxGeometry(38, 2, 27), new THREE.MeshStandardMaterial({ color: 0xCBD5E1 }));
-      hroof.position.set(0, 14.5, 0.5);
-      hroof.castShadow = true;
-      hangarGroup.add(hroof);
+      hangarRoof = new THREE.Mesh(
+        new THREE.BoxGeometry(HW + 2, 2, HD + 2),
+        new THREE.MeshStandardMaterial({ color: 0xCBD5E1, transparent: true })
+      );
+      hangarRoof.position.set(0, HH + 0.5, 0);
+      hangarRoof.castShadow = true;
+      hangarGroup.add(hangarRoof);
 
-      const hlight = new THREE.PointLight(0xFFFBEB, 0.8, 30);
-      hlight.position.set(0, 12, 0);
-      hangarGroup.add(hlight);
+      [-14, 14].forEach(lx => {
+        const hlight = new THREE.PointLight(0xFFFBEB, 0.9, 38);
+        hlight.position.set(lx, 11, 0);
+        hangarGroup.add(hlight);
+      });
+
+      // Aircraft in Bay 1 (matches the "C-Check Inspection Active" status text)
+      const mroPlane = createProceduralA320('MRO-01', 'ET-AXM', 'Ethiopian Engineering', PALETTE.accent);
+      mroPlane.position.set(0, 0.08, -2);
+      mroPlane.rotation.y = H.E;
+      const mroData = mroPlane.userData;
+      mroData.name = 'ET-AXM • A320neo (C-Check)';
+      mroData.hudLabel = 'ET-AXM · C-Check';
+      mroData.state = 'C-CHECK';
+      mroData.assignedStand = 'MRO Bay 1';
+      delete mroData.origin;
+      delete mroData.dest;
+      delete mroData.fuel;
+      delete mroData.pax;
+      hangarGroup.add(mroPlane);
 
       hangarGroup.userData = {
         id: "HANGAR",
-        name: "SNJ Aircraft Maintenance Hangar (MRO)",
+        name: "OLU Aircraft Maintenance Hangar (MRO)",
+        hudLabel: "MRO Hangar",
         category: "Hangar",
         stats: "Bay 1: C-Check Inspection Active"
       };
@@ -1910,7 +1969,7 @@
         fuel: 48.0,
         pax: 0,
         origin: 'DXB',
-        dest: 'SNJ',
+        dest: 'OLU',
         mesh: plane
       };
 
@@ -1971,7 +2030,7 @@
         fl.add(w);
       });
 
-      fl.userData = { id: "FL-01", name: "Cargo Heavy Forklift FL-01", category: "Vehicle", type: "Forklift", speed: 6, mesh: fl };
+      fl.userData = { id: "FL-01", name: "Cargo Heavy Forklift FL-01", hudLabel: "FL-01 · Forklift", category: "Vehicle", type: "Forklift", speed: 6, mesh: fl };
       clickableObjects.push(body);
       body.userData = fl.userData;
       entityRegistry.set("FL-01", fl.userData);
@@ -2223,8 +2282,8 @@
         altitude: 0,
         fuel: 14.2,
         pax: 168,
-        origin: 'BLR',
-        dest: 'SNJ',
+        origin: 'ADD',
+        dest: 'OLU',
         mesh: plane
       };
 
@@ -2402,15 +2461,15 @@
     }
 
     function spawnSimulationEntities() {
-      // Aircraft 1: AI-742 parked at Stand A3, nose toward the terminal
-      plane1 = createProceduralA320('AI-742', 'VT-EXA', 'Air India', PALETTE.accent);
+      // Aircraft 1: ET-742 parked at Stand A3, nose toward the terminal
+      plane1 = createProceduralA320('ET-742', 'ET-AXA', 'Ethiopian Airlines', PALETTE.accent);
       setupAircraft(plane1, { standId: 'A3', standX: 0, turnTime: 15 });
       plane1.position.set(0, 0, LAYOUT.STAND_Z);
       plane1.rotation.y = H.N;
       plane1.userData.state = 'TURNAROUND';
 
-      // Aircraft 2: 6E-203 on the circuit, a few seconds from final approach
-      plane2 = createProceduralA320('6E-203', 'VT-IFR', 'IndiGo', 0x0284C7);
+      // Aircraft 2: KQ-203 on the circuit, a few seconds from final approach
+      plane2 = createProceduralA320('KQ-203', '5Y-KZA', 'Kenya Airways', 0x0284C7);
       setupAircraft(plane2, { standId: 'A1', standX: -50, turnTime: 20 });
       plane2.sim.path = ROUTES.flight();
       plane2.sim.s = plane2.sim.path.length - 380;
@@ -2777,6 +2836,7 @@
       });
 
       updateAirfield(delta);
+      updateHangarCutaway(delta);
 
       // ----------------------------------------------------------------------
       // CAMERA FOLLOW & TRANSITION (Using Scratch Vectors)
@@ -2919,91 +2979,249 @@
       return false;
     }
 
+    // Rects (viewport px) of the UI panels the HUD tag must never sit under.
+    let hudObstacles = [];
+    let hudTagSize = { label: '', w: 140, h: 24 };
+
+    function refreshHudObstacles() {
+      hudObstacles = ['top-bar', 'kpi-row', 'detail-panel', 'turnaround-panel', 'live-table-panel']
+        .map(id => document.getElementById(id))
+        .filter(el => el && el.offsetParent !== null)
+        .map(el => el.getBoundingClientRect());
+    }
+
+    // Short label for the floating tag so long names never spill over panels.
+    function hudLabelFor(entity) {
+      if (entity.hudLabel) return entity.hudLabel;
+      const name = entity.name || 'Target';
+      if (name.length <= 24) return name;
+      return `${entity.id || name.slice(0, 8)} · ${entity.type || entity.category || ''}`.trim();
+    }
+
     function updateFloatingHUD() {
       const hud = document.getElementById('hud-anchor');
-      if (!AppState.selectedObject || !getEntityWorldPos(AppState.selectedObject, _scratchTargetWorldPos)) {
+      const sel = AppState.selectedObject;
+      if (!sel || !getEntityWorldPos(sel, _scratchTargetWorldPos)) {
         hud.style.display = 'none';
         return;
       }
 
-      _scratchTargetWorldPos.y += 4.5;
-
+      _scratchTargetWorldPos.y += sel.hudHeight || 4.5;
       _scratchScreenPos.copy(_scratchTargetWorldPos).project(camera);
-      const onScreen = _scratchScreenPos.z < 1 &&
-        Math.abs(_scratchScreenPos.x) <= 1.05 && Math.abs(_scratchScreenPos.y) <= 1.05;
-      if (onScreen) {
-        const x = (_scratchScreenPos.x * 0.5 + 0.5) * window.innerWidth;
-        const y = (-(_scratchScreenPos.y * 0.5) + 0.5) * window.innerHeight;
-        hud.style.left = `${x}px`;
-        hud.style.top = `${y}px`;
-        hud.style.display = 'block';
-        document.getElementById('hud-text').textContent = AppState.selectedObject.name || 'Target';
-      } else {
+      if (_scratchScreenPos.z >= 1 || Math.abs(_scratchScreenPos.x) > 1.05 || Math.abs(_scratchScreenPos.y) > 1.05) {
         hud.style.display = 'none';
+        return;
       }
+      const x = (_scratchScreenPos.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-(_scratchScreenPos.y * 0.5) + 0.5) * window.innerHeight;
+
+      // Re-measure the tag only when its label changes (avoids per-frame layout).
+      const label = hudLabelFor(sel);
+      if (hudTagSize.label !== label) {
+        document.getElementById('hud-text').textContent = label;
+        hud.style.display = 'block'; // must be displayed to be measured
+        hudTagSize = { label, w: hud.offsetWidth, h: hud.offsetHeight };
+      }
+
+      // Slide the tag sideways clear of any panel; hide it if its anchor is
+      // itself under a panel or it would have to detach from the target.
+      const halfW = hudTagSize.w / 2;
+      const tagH = hudTagSize.h + 8; // tag + arrow
+      let dx = 0;
+      for (let pass = 0; pass < 2; pass++) {
+        for (const r of hudObstacles) {
+          if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+            hud.style.display = 'none';
+            return;
+          }
+          const l = x + dx - halfW, rt = x + dx + halfW;
+          if (rt > r.left && l < r.right && y > r.top && y - tagH < r.bottom) {
+            const toLeft = (r.left - 6) - rt;
+            const toRight = (r.right + 6) - l;
+            dx += Math.abs(toLeft) <= Math.abs(toRight) ? toLeft : toRight;
+          }
+        }
+      }
+      if (x + dx - halfW < 6) dx = 6 + halfW - x;
+      if (x + dx + halfW > window.innerWidth - 6) dx = window.innerWidth - 6 - halfW - x;
+      if (Math.abs(dx) > halfW - 10) {
+        hud.style.display = 'none';
+        return;
+      }
+
+      hud.style.left = `${x + dx}px`;
+      hud.style.top = `${y}px`;
+      hud.style.setProperty('--arrow-dx', `${-dx}px`);
+      hud.style.display = 'block';
+    }
+
+    // Hangar cutaway: roof and walls fade when the camera is close or the
+    // hangar / its aircraft is selected, so the interior is visible.
+    const HANGAR_CENTER = new THREE.Vector3(-128, 7, -32);
+    function updateHangarCutaway(dt) {
+      if (!hangarRoof || !hangarWallMat) return;
+      const sel = AppState.selectedObject;
+      const inspecting = !!sel && (sel.id === 'HANGAR' || sel.id === 'MRO-01');
+      const cut = inspecting || camera.position.distanceTo(HANGAR_CENTER) < 95;
+      const k = Math.min(1, dt * 4);
+      const roofMat = hangarRoof.material;
+      roofMat.opacity += ((cut ? 0.08 : 1) - roofMat.opacity) * k;
+      hangarWallMat.opacity += ((cut ? 0.45 : 1) - hangarWallMat.opacity) * k;
+      const solid = roofMat.opacity > 0.97;
+      roofMat.depthWrite = solid;
+      hangarWallMat.depthWrite = hangarWallMat.opacity > 0.97;
+      hangarRoof.castShadow = roofMat.opacity > 0.5;
+    }
+
+    /* --------------------------------------------------------------------------
+       DETAIL PANEL (every field is rewritten per category: nothing goes stale)
+       -------------------------------------------------------------------------- */
+    const CITY_NAMES = { ADD: 'Addis Ababa', NBO: 'Nairobi', CAI: 'Cairo', LOS: 'Lagos', IST: 'Istanbul', DXB: 'Dubai', OLU: "Oludayo's" };
+    const SCHEDULES = { 'ET-742': ['18:10', '18:55'] };
+    const DETAIL_LABELS = {
+      Aircraft: ['Assigned Stand', 'Turnaround', 'Fuel Onboard', 'Pax Load', 'Ground Speed', 'Altitude'],
+      Vehicle:  ['Zone', 'Task', 'Battery', 'Payload', 'Speed', 'Type'],
+      Stand:    ['Stand', 'Status', 'Flight', 'Gate', 'Position X', 'Position Z'],
+      Facility: ['Type', 'Status', 'Details', 'ID', 'Position X', 'Position Z']
+    };
+    const VEHICLE_INFO = {
+      'T-01':  { zone: 'Stand A3',    task: 'Pushback support', battery: '94%', payload: '—' },
+      'BT-04': { zone: 'Apron Inner', task: 'Baggage haul',     battery: '88%', payload: '3 carts' },
+      'CT-02': { zone: 'Stand A3',    task: 'Galley service',   battery: '91%', payload: '—' },
+      'FL-01': { zone: 'Cargo Hub',   task: 'Loading ULD',      battery: '96%', payload: '1 × ULD' }
+    };
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function detailKind(entity) {
+      const c = entity.category || '';
+      if (/Aircraft/.test(c)) return 'Aircraft';
+      if (c === 'Vehicle') return 'Vehicle';
+      if (c === 'Stand') return 'Stand';
+      return 'Facility';
     }
 
     function selectEntity(entity) {
       if (!entity) return;
       AppState.selectedObject = entity;
+      const kind = detailKind(entity);
 
-      document.getElementById('dp-title').textContent = entity.name || 'Airport Facility';
-      document.getElementById('dp-subtitle').textContent = entity.airline ? `${entity.airline} • Reg: ${entity.reg || 'VT-EXA'}` : 'Sanjai Apron Infrastructure';
-      document.getElementById('dp-status').textContent = entity.state || 'OPERATIONAL';
+      document.querySelectorAll('#detail-panel .telemetry-item .label').forEach((el, i) => {
+        el.textContent = DETAIL_LABELS[kind][i] || '';
+      });
 
-      if (entity.origin) {
-        document.getElementById('dp-origin').textContent = entity.origin;
-        document.getElementById('dp-dest').textContent = entity.dest;
-      }
-      if (entity.assignedStand) {
-        document.getElementById('dp-stand').textContent = `Stand ${entity.assignedStand}`;
-      }
-      if (entity.fuel) {
-        document.getElementById('dp-fuel').textContent = `${entity.fuel} / 18.0 t`;
-      }
-      if (entity.pax !== undefined) {
-        document.getElementById('dp-pax').textContent = `${entity.pax} / 180`;
+      const showRoute = kind === 'Aircraft' && !!entity.origin;
+      const routeBox = document.querySelector('#detail-panel .flight-route-box');
+      if (routeBox) routeBox.style.display = showRoute ? '' : 'none';
+
+      const p = new THREE.Vector3();
+      const hasPos = getEntityWorldPos(entity, p);
+      const px = hasPos ? String(Math.round(p.x)) : '—';
+      const pz = hasPos ? String(Math.round(p.z)) : '—';
+
+      let subtitle, status, vals;
+      if (kind === 'Aircraft') {
+        const stand = entity.assignedStand;
+        const is777 = /777F/.test(entity.type || '');
+        subtitle = `${entity.airline || '—'} • Reg: ${entity.reg || '—'}`;
+        status = entity.state || 'OPERATIONAL';
+        vals = [
+          !stand ? '—' : (/^[A-Z]\d+$/.test(stand) ? `Stand ${stand}` : stand),
+          '—', // ET-742's countdown is written live by updateTurnaroundUI
+          entity.fuel != null ? `${entity.fuel} / ${is777 ? '145.0' : '18.0'} t` : '—',
+          entity.pax != null ? (is777 ? 'Cargo only' : `${entity.pax} / 180`) : '—',
+          `${entity.speed || 0} kts`,
+          `${entity.altitude || 0} ft (GND)`
+        ];
+        if (showRoute) {
+          const dest = entity.dest || 'OLU';
+          setText('dp-origin', entity.origin);
+          setText('dp-dest', dest);
+          const cities = document.querySelectorAll('#detail-panel .route-node .city');
+          if (cities[0]) cities[0].textContent = CITY_NAMES[entity.origin] || '';
+          if (cities[1]) cities[1].textContent = CITY_NAMES[dest] || '';
+          const sch = SCHEDULES[entity.id];
+          setText('dp-sched-arr', sch ? `STA ${sch[0]}` : '');
+          setText('dp-sched-dep', sch ? `STD ${sch[1]}` : '');
+        }
+      } else if (kind === 'Vehicle') {
+        const info = VEHICLE_INFO[entity.id] || {};
+        subtitle = `${entity.type || 'Vehicle'} • ${info.zone || 'Apron'}`;
+        status = 'ACTIVE';
+        vals = [info.zone || '—', info.task || '—', info.battery || '—', info.payload || '—',
+                `${entity.speed || 0} kts`, entity.type || '—'];
+      } else if (kind === 'Stand') {
+        subtitle = 'Apron stand • Terminal A';
+        status = entity.occupied ? 'OCCUPIED' : 'AVAILABLE';
+        vals = [entity.id, entity.occupied ? 'Occupied' : 'Free', entity.aircraft || '—', `Gate ${entity.id}`, px, pz];
+      } else {
+        subtitle = `${entity.category || 'Facility'} • Oludayo's Apron Infrastructure`;
+        status = 'OPERATIONAL';
+        vals = [entity.type || entity.category || '—', 'Operational', entity.stats || '—', entity.id || '—', px, pz];
       }
 
+      setText('dp-title', entity.name || entity.id || 'Airport Facility');
+      setText('dp-subtitle', subtitle);
+      setText('dp-status', status);
+      ['dp-stand', 'dp-countdown', 'dp-fuel', 'dp-pax', 'dp-speed', 'dp-alt'].forEach((id, i) => setText(id, vals[i]));
+
+      refreshHudObstacles();
       renderTableData();
     }
 
     /* --------------------------------------------------------------------------
-       INTERACTION
+       INTERACTION (select on click, never at the start of an orbit drag)
        -------------------------------------------------------------------------- */
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
+    function pickAt(clientX, clientY) {
+      mouse.x = (clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(clickableObjects, true);
+      if (!intersects.length) return;
+      let hit = intersects[0].object;
+      while (hit && !hit.userData.name && hit.parent) {
+        hit = hit.parent;
+      }
+      if (hit && hit.userData.name) {
+        selectEntity(hit.userData);
+      }
+    }
+
     function setupInteraction() {
+      const CLICK_SLOP_PX = 5;
+      let down = null;
+
       window.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('.glass') || e.target.closest('#hud-anchor')) return;
-
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(clickableObjects, true);
-
-        if (intersects.length > 0) {
-          let hit = intersects[0].object;
-          while (hit && !hit.userData.name && hit.parent) {
-            hit = hit.parent;
-          }
-          if (hit && hit.userData.name) {
-            selectEntity(hit.userData);
-          }
-        }
+        const onUi = e.target.closest('.glass') || e.target.closest('#hud-anchor');
+        down = onUi ? null : { x: e.clientX, y: e.clientY, id: e.pointerId };
       });
+      window.addEventListener('pointerup', (e) => {
+        if (!down || e.pointerId !== down.id) return;
+        const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+        down = null;
+        if (moved <= CLICK_SLOP_PX) pickAt(e.clientX, e.clientY);
+      });
+      window.addEventListener('pointercancel', () => { down = null; });
+
+      refreshHudObstacles();
+      setInterval(refreshHudObstacles, 400);
     }
 
     /* --------------------------------------------------------------------------
        WINDOW API HOOKS
        -------------------------------------------------------------------------- */
     window.flyToArea = function(areaKey, btn) {
-      if (btn) {
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      }
+      // Keep the nav highlight in sync even when called without a button (search, KPI cards, API)
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        const match = btn ? b === btn : (b.getAttribute('onclick') || '').includes(`'${areaKey}'`);
+        b.classList.toggle('active', match);
+      });
 
       AppState.cameraFollowing = false;
       const view = AREA_VIEWS[areaKey];
@@ -3032,69 +3250,62 @@
       }
     };
 
+    // Single source of truth for lighting, fog and precipitation. Day/night and
+    // season only change state, then call applyEnvironment().
+    const SEASON_ENV = {
+      summer:  { bg: 0xD9E2EC, fog: 0.0035, dirColor: 0xFFF5E6, dir: 1.25, precip: null,
+                 msg: 'Weather: Clear Skies, 32°C, Runway 09L Dry.' },
+      monsoon: { bg: 0x475569, fog: 0.007, dirColor: 0x94A3B8, dir: 0.55,
+                 precip: { color: 0x93C5FD, size: 0.7, opacity: 0.85 },
+                 msg: 'Monsoon Warning: Rain showers, wet tarmac, lightning active.' },
+      winter:  { bg: 0xCBD5E1, fog: 0.018, dirColor: 0xFFF5E6, dir: 0.45, precip: null,
+                 msg: 'Low Visibility Procedures (LVP): CAT III ILS Active, Fog 300m.' },
+      snow:    { bg: 0xE2E8F0, fog: 0.009, dirColor: 0xF1F5F9, dir: 0.9,
+                 precip: { color: 0xFFFFFF, size: 1.2, opacity: 0.9 },
+                 msg: 'Snow Event: De-icing trucks deployed to taxiways.' }
+    };
+    const NIGHT_ENV = { bg: 0x0A0D14, dir: 0.15, hemi: 0.2, amb: 0.2, precipScale: 0.7 };
+    const DAY_LIGHT = { hemi: 0.55, amb: 0.45 };
+
+    function applyEnvironment() {
+      const e = SEASON_ENV[AppState.season] || SEASON_ENV.summer;
+      const night = AppState.isNight;
+      const bg = night ? NIGHT_ENV.bg : e.bg;
+
+      scene.background.set(bg);
+      scene.fog.color.set(bg);
+      scene.fog.density = e.fog;
+      dirLight.color.set(e.dirColor);
+      dirLight.intensity = night ? NIGHT_ENV.dir : e.dir;
+      hemiLight.intensity = night ? NIGHT_ENV.hemi : DAY_LIGHT.hemi;
+      ambientLight.intensity = night ? NIGHT_ENV.amb : DAY_LIGHT.amb;
+      floodLights.forEach(f => { f.intensity = night ? 1.4 : 0; });
+
+      if (e.precip) {
+        particleMat.color.set(e.precip.color);
+        particleMat.size = e.precip.size;
+        particleMat.opacity = e.precip.opacity * (night ? NIGHT_ENV.precipScale : 1);
+      } else {
+        particleMat.opacity = 0;
+      }
+    }
+
     window.toggleDayNight = function() {
       AppState.isNight = !AppState.isNight;
-      const icon = document.getElementById('day-night-icon');
-
-      if (AppState.isNight) {
-        icon.textContent = '☀️';
-        scene.background.set(0x0A0D14);
-        scene.fog.color.set(0x0A0D14);
-        dirLight.intensity = 0.15;
-        ambientLight.intensity = 0.2;
-        hemiLight.intensity = 0.2;
-
-        runwayLightPoints.forEach(p => p.material.color.set(0xFFFFFF));
-        floodLights.forEach(f => f.intensity = 1.4);
-        window.triggerNotification('Night operations enabled. Runway edge lights and floodlights online.');
-      } else {
-        icon.textContent = '🌙';
-        window.changeSeason(AppState.season);
-        floodLights.forEach(f => f.intensity = 0);
-        window.triggerNotification('Daylight operations restored.');
-      }
+      document.getElementById('day-night-icon').textContent = AppState.isNight ? '☀️' : '🌙';
+      applyEnvironment();
+      window.triggerNotification(AppState.isNight
+        ? 'Night operations enabled. Runway edge lights and floodlights online.'
+        : 'Daylight operations restored.');
     };
 
     window.changeSeason = function(season) {
+      if (!SEASON_ENV[season]) return;
       AppState.season = season;
-      if (AppState.isNight) return;
-
-      if (season === 'summer') {
-        scene.background.set(0xD9E2EC);
-        scene.fog.color.set(0xD9E2EC);
-        scene.fog.density = 0.0035;
-        dirLight.color.set(0xFFF5E6);
-        dirLight.intensity = 1.25;
-        particleMat.opacity = 0;
-        window.triggerNotification('Weather: Clear Skies, 32°C, Runway 09L Dry.');
-      } else if (season === 'monsoon') {
-        scene.background.set(0x475569);
-        scene.fog.color.set(0x475569);
-        scene.fog.density = 0.007;
-        dirLight.color.set(0x94A3B8);
-        dirLight.intensity = 0.55;
-        particleMat.color.set(0x93C5FD);
-        particleMat.size = 0.7;
-        particleMat.opacity = 0.85;
-        window.triggerNotification('Monsoon Warning: Rain showers, wet tarmac, lightning active.');
-      } else if (season === 'winter') {
-        scene.background.set(0xCBD5E1);
-        scene.fog.color.set(0xCBD5E1);
-        scene.fog.density = 0.018;
-        dirLight.intensity = 0.45;
-        particleMat.opacity = 0;
-        window.triggerNotification('Low Visibility Procedures (LVP): CAT III ILS Active, Fog 300m.');
-      } else if (season === 'snow') {
-        scene.background.set(0xE2E8F0);
-        scene.fog.color.set(0xE2E8F0);
-        scene.fog.density = 0.009;
-        dirLight.color.set(0xF1F5F9);
-        dirLight.intensity = 0.9;
-        particleMat.color.set(0xFFFFFF);
-        particleMat.size = 1.2;
-        particleMat.opacity = 0.9;
-        window.triggerNotification('Snow Event: De-icing trucks deployed to taxiways.');
-      }
+      const sel = document.getElementById('season-select');
+      if (sel && sel.value !== season) sel.value = season;
+      applyEnvironment();
+      window.triggerNotification(SEASON_ENV[season].msg);
     };
 
     window.switchCameraFeed = function(idx, btn) {
@@ -3143,10 +3354,10 @@
     window.handleSearch = function(query) {
       if (!query) return;
       const q = query.toLowerCase();
-      if (q.includes('ai') || q.includes('742') || q.includes('india')) {
-        window.selectEntityById('AI-742');
-      } else if (q.includes('6e') || q.includes('203') || q.includes('indigo')) {
-        window.selectEntityById('6E-203');
+      if (q.includes('742') || q.includes('ethiop') || q === 'et') {
+        window.selectEntityById('ET-742');
+      } else if (q.includes('203') || q.includes('kenya') || q === 'kq') {
+        window.selectEntityById('KQ-203');
       } else if (q.includes('ek') || q.includes('992') || q.includes('cargo') || q.includes('freight')) {
         window.selectEntityById('EK-992');
       } else if (q.includes('fork') || q.includes('lift') || q.includes('fl')) {
@@ -3200,7 +3411,10 @@
 
       const remainingMin = Math.max(0, Math.round(15 - elapsedSec));
       document.getElementById('tt-time-tag').textContent = `T - ${remainingMin} min`;
-      document.getElementById('dp-countdown').textContent = `T-${remainingMin} min`;
+      // Only ET-742 owns this countdown; other selections show their own value
+      if (AppState.selectedObject && AppState.selectedObject.id === 'ET-742') {
+        document.getElementById('dp-countdown').textContent = `T-${remainingMin} min`;
+      }
     }
 
     function renderTableData() {
@@ -3214,10 +3428,10 @@
               <tr><th>Stand</th><th>Flight</th><th>Airline</th><th>Aircraft</th><th>Status</th><th>Turnaround</th></tr>
             </thead>
             <tbody>
-              <tr onclick="window.focusStand('A1')"><td><b>A1</b></td><td>6E-203</td><td>IndiGo</td><td>A320neo</td><td><span style="color:var(--status-orange)">● Inbound</span></td><td>18:40</td></tr>
-              <tr onclick="window.focusStand('A2')"><td><b>A2</b></td><td>AK-315</td><td>AirAsia</td><td>A320-200</td><td><span style="color:var(--status-green)">● Ready</span></td><td>18:50</td></tr>
-              <tr class="selected" onclick="window.focusStand('A3')"><td><b>A3</b></td><td>AI-742</td><td>Air India</td><td>A320neo</td><td><span style="color:var(--accent)">● Turnaround</span></td><td>18:43</td></tr>
-              <tr onclick="window.focusStand('A4')"><td><b>A4</b></td><td>SG-816</td><td>SpiceJet</td><td>B737-800</td><td><span style="color:var(--status-blue)">● Boarding</span></td><td>18:30</td></tr>
+              <tr onclick="window.focusStand('A1')"><td><b>A1</b></td><td>KQ-203</td><td>Kenya Airways</td><td>A320neo</td><td><span style="color:var(--status-orange)">● Inbound</span></td><td>18:40</td></tr>
+              <tr onclick="window.focusStand('A2')"><td><b>A2</b></td><td>P4-315</td><td>Air Peace</td><td>A320-200</td><td><span style="color:var(--status-green)">● Ready</span></td><td>18:50</td></tr>
+              <tr class="selected" onclick="window.focusStand('A3')"><td><b>A3</b></td><td>ET-742</td><td>Ethiopian Airlines</td><td>A320neo</td><td><span style="color:var(--accent)">● Turnaround</span></td><td>18:43</td></tr>
+              <tr onclick="window.focusStand('A4')"><td><b>A4</b></td><td>TK-816</td><td>Turkish Airlines</td><td>B737-800</td><td><span style="color:var(--status-blue)">● Boarding</span></td><td>18:30</td></tr>
               <tr onclick="window.selectEntityById('EK-992')"><td><b>C1 (Cargo)</b></td><td>EK-992</td><td>SkyCargo</td><td>B777F</td><td><span style="color:var(--status-orange)">● Loading</span></td><td>19:20</td></tr>
             </tbody>
           </table>
@@ -3244,10 +3458,10 @@
               <tr><th>Flight</th><th>Route</th><th>STD/STA</th><th>Gate</th><th>Pax</th><th>Fuel</th></tr>
             </thead>
             <tbody>
-              <tr class="selected" onclick="window.selectEntityById('AI-742')"><td><b>AI-742</b></td><td>BLR ➔ SNJ</td><td>18:12 / 18:45</td><td>A3</td><td>168</td><td>14.2 t</td></tr>
-              <tr onclick="window.selectEntityById('6E-203')"><td><b>6E-203</b></td><td>DEL ➔ SNJ</td><td>18:35 / 19:10</td><td>A1</td><td>174</td><td>15.8 t</td></tr>
-              <tr onclick="window.selectEntityById('EK-992')"><td><b>EK-992</b></td><td>DXB ➔ SNJ</td><td>17:30 / 18:15</td><td>C1 (Cargo)</td><td>0</td><td>48.0 t</td></tr>
-              <tr><td><b>UK-821</b></td><td>BOM ➔ SNJ</td><td>18:50 / 19:30</td><td>A2</td><td>152</td><td>13.6 t</td></tr>
+              <tr class="selected" onclick="window.selectEntityById('ET-742')"><td><b>ET-742</b></td><td>ADD ➔ OLU</td><td>18:12 / 18:45</td><td>A3</td><td>168</td><td>14.2 t</td></tr>
+              <tr onclick="window.selectEntityById('KQ-203')"><td><b>KQ-203</b></td><td>NBO ➔ OLU</td><td>18:35 / 19:10</td><td>A1</td><td>174</td><td>15.8 t</td></tr>
+              <tr onclick="window.selectEntityById('EK-992')"><td><b>EK-992</b></td><td>DXB ➔ OLU</td><td>17:30 / 18:15</td><td>C1 (Cargo)</td><td>0</td><td>48.0 t</td></tr>
+              <tr><td><b>MS-821</b></td><td>CAI ➔ OLU</td><td>18:50 / 19:30</td><td>A2</td><td>152</td><td>13.6 t</td></tr>
             </tbody>
           </table>
         `;
