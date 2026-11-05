@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Gateflow — Oludayo's Airport Operations 3D</title>
   <!-- Inline SVG Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
@@ -834,33 +834,118 @@
       opacity: 1;
     }
 
-    @media (max-width: 900px) {
-      #detail-panel {
-        display: none;
+    /* ==========================================================================
+       ADAPTIVE LAYOUT  (large desktop > laptop/tablet > compact phone)
+       ========================================================================== */
+    html, body { height: 100%; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+    @supports (height: 100dvh) { html, body { height: 100dvh; } }
+    #webgl-canvas { touch-action: none; }
+    #search-toggle, #mobile-tabs { display: none; }
+
+    /* Large / ultrawide screens */
+    @media (min-width: 1800px) {
+      body { font-size: 14px; }
+      #detail-panel { width: 360px; max-height: calc(100vh - 80px - 14px - 280px - 12px); }
+      #live-table-panel { width: 620px; max-height: 280px; }
+      #turnaround-panel { width: 560px; }
+    }
+
+    /* Laptops and tablets in landscape */
+    @media (max-width: 1180px) {
+      .brand-text span { display: none; }
+      .search-box { width: 150px; }
+      .search-box input:focus { width: 190px; }
+      .nav-btn { padding: 6px 9px; }
+      .select-dropdown { max-width: 128px; text-overflow: ellipsis; }
+      #turnaround-panel { width: min(480px, 44vw); }
+      #live-table-panel { width: min(520px, calc(56vw - 28px)); }
+    }
+
+    /* Search collapses into a button when the header gets tight */
+    @media (max-width: 1000px), (max-height: 480px) {
+      .search-box { display: none; }
+      #search-toggle { display: flex; }
+      body.search-open .search-box {
+        display: block; position: absolute; top: calc(100% + 8px); left: 0; width: min(340px, 100%); z-index: 40;
       }
-      #turnaround-panel {
-        width: calc(100% - 28px);
-        bottom: 74px;
+      body.search-open .search-box input,
+      body.search-open .search-box input:focus { width: 100%; background: rgba(18, 22, 31, 0.96); }
+    }
+
+    /* Compact: phones, small tablets, landscape phones */
+    @media (max-width: 820px), (max-height: 480px) {
+      #top-bar {
+        top: calc(8px + env(safe-area-inset-top));
+        left: calc(8px + env(safe-area-inset-left));
+        right: calc(8px + env(safe-area-inset-right));
+        height: auto; flex-wrap: wrap; justify-content: space-between;
+        padding: 6px 10px; gap: 6px 8px;
       }
-      #live-table-panel {
-        display: none;
-      }
-      .search-box {
-        display: none;
-      }
+      .tool-group { display: contents; }
+      .logo-group { order: 1; margin-right: auto; min-width: 0; }
+      .brand-text h1 { font-size: 14px; }
+      .tool-group > .icon-btn { order: 3; width: 32px; height: 32px; }
+      .live-clock { order: 4; font-size: 12px; padding: 5px 8px; }
       .nav-pills {
-        display: none;
+        order: 10; flex: 1 1 calc(100% - 108px); min-width: 0;
+        overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none;
       }
+      .nav-pills::-webkit-scrollbar { display: none; }
+      .nav-btn { flex: 0 0 auto; padding: 7px 11px; }
+      .select-dropdown { order: 11; width: 100px; max-width: 100px; padding: 6px 4px; font-size: 11px; }
+
       #kpi-row {
+        top: calc(var(--top-h, 100px) + 8px);
+        left: calc(8px + env(safe-area-inset-left));
+        right: calc(8px + env(safe-area-inset-right));
         gap: 6px;
       }
-      .kpi-card {
-        min-width: 100px;
-        padding: 6px 10px;
+      .kpi-card { flex: 1 1 0; min-width: 0; padding: 6px 8px; }
+      .kpi-header { font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .kpi-value { font-size: 15px; gap: 4px; }
+      .kpi-delta { font-size: 10px; }
+
+      /* One bottom sheet at a time, switched from the tab bar */
+      #detail-panel, #live-table-panel, #turnaround-panel {
+        display: none; position: fixed; top: auto; width: auto; max-width: none;
+        left: calc(8px + env(safe-area-inset-left));
+        right: calc(8px + env(safe-area-inset-right));
+        bottom: calc(62px + env(safe-area-inset-bottom));
+        max-height: 46vh; max-height: min(46dvh, 400px);
+        overflow-y: auto; overflow-x: auto;
       }
-      .kpi-value {
-        font-size: 16px;
+      body[data-sheet="detail"] #detail-panel { display: flex; }
+      body[data-sheet="table"] #live-table-panel { display: block; }
+      body[data-sheet="turn"] #turnaround-panel { display: block; }
+
+      #mobile-tabs {
+        display: flex; position: fixed; z-index: 20; gap: 4px; padding: 4px; height: 46px;
+        left: calc(8px + env(safe-area-inset-left));
+        right: calc(8px + env(safe-area-inset-right));
+        bottom: calc(8px + env(safe-area-inset-bottom));
       }
+      #mobile-tabs button {
+        flex: 1; border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary);
+        font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; pointer-events: auto;
+      }
+      #mobile-tabs button.active { background: var(--accent); color: #fff; }
+
+      .ops-table th, .ops-table td { white-space: nowrap; }
+
+      #alert-toast {
+        bottom: auto; top: calc(var(--top-h, 100px) + 8px);
+        max-width: calc(100vw - 24px); z-index: 30;
+      }
+    }
+
+    /* Landscape phones: sheets sit at the left, KPIs hidden to save height */
+    @media (max-height: 480px) {
+      #kpi-row { display: none; }
+      #detail-panel, #live-table-panel, #turnaround-panel {
+        right: auto; width: min(460px, 60vw);
+        max-height: calc(100vh - var(--top-h, 70px) - 84px);
+      }
+      #mobile-tabs { right: auto; width: min(460px, 60vw); }
     }
   </style>
 
@@ -919,6 +1004,7 @@
 
     <!-- Right Controls -->
     <div class="tool-group">
+      <button class="icon-btn" id="search-toggle" title="Search" onclick="window.toggleSearch()">🔍</button>
       <select id="season-select" class="select-dropdown" onchange="window.changeSeason(this.value)">
         <option value="summer">☀️ Summer (Clear)</option>
         <option value="monsoon">🌧️ Monsoon (Rain & Light)</option>
@@ -1086,6 +1172,14 @@
     <div class="table-scroll" id="table-content-area"></div>
   </div>
 
+  <!-- MOBILE TAB BAR (compact layouts only) -->
+  <div id="mobile-tabs" class="glass">
+    <button data-sheet="detail" onclick="window.toggleSheet('detail')">ℹ Details</button>
+    <button data-sheet="table" onclick="window.toggleSheet('table')">▦ Table</button>
+    <button data-sheet="turn" onclick="window.toggleSheet('turn')">⏱ Turnaround</button>
+    <button onclick="window.toggleSheet(document.body.dataset.sheet)">▾ Hide</button>
+  </div>
+
   <!-- NOTIFICATION TOAST -->
   <div id="alert-toast">
     <span style="color:var(--accent); font-size:16px;">⚡</span>
@@ -1210,7 +1304,7 @@
     // Area Camera Presets
     const AREA_VIEWS = {
       overview: { pos: [90, 85, 110], look: [0, 0, 0] },
-      terminal: { pos: [0, 40, 66], look: [0, 0, 16] },
+      terminal: { pos: [0, 36, 46], look: [0, 2, -10] },
       runway: { pos: [-80, 26, 62], look: [-80, 0, -20] },
       cargo: { pos: [170, 44, 20], look: [128, 0, 10] },    // side-on, clear of the freighter's nose
       hangar: { pos: [-112, 40, 14], look: [-128, 2, -32] }, // front-high, looking into the open bay
@@ -1237,7 +1331,7 @@
       // 3. Renderer with Optimized Performance & Tone Mapping
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.matchMedia('(max-width: 820px), (max-height: 480px)').matches ? 1.5 : 1.75));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1535,38 +1629,64 @@
     function buildTerminalComplex() {
       const terminalGroup = new THREE.Group();
 
-      const bodyGeo = new THREE.BoxGeometry(130, 9, 26);
       const clayMat = new THREE.MeshStandardMaterial({
         color: PALETTE.clayWall,
         roughness: 0.75,
         metalness: 0.05
       });
-      const body = new THREE.Mesh(bodyGeo, clayMat);
-      body.position.set(0, 4.5, -12);
-      body.castShadow = true;
-      body.receiveShadow = true;
-      terminalGroup.add(body);
 
-      const glassMat = new THREE.MeshPhysicalMaterial({
+      // Hollow shell (walls share one fading material) so the interior can be revealed.
+      terminalWallMat = clayMat.clone();
+      terminalWallMat.transparent = true;
+      const terminalPickables = [];
+      const addWall = (w, h, d, x, y, z) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), terminalWallMat);
+        m.position.set(x, y, z);
+        m.castShadow = true;
+        m.receiveShadow = true;
+        terminalGroup.add(m);
+        terminalPickables.push(m);
+        return m;
+      };
+      addWall(130, 9, 0.8, 0, 4.5, -24.6);      // back wall
+      addWall(0.8, 9, 26, -64.6, 4.5, -12);     // west end
+      addWall(0.8, 9, 26, 64.6, 4.5, -12);      // east end
+      addWall(130, 0.8, 1.4, 0, 0.4, 0.3);      // front plinth
+      addWall(130, 0.8, 1.4, 0, 8.6, 0.3);      // front band
+
+      const groundFloor = new THREE.Mesh(
+        new THREE.BoxGeometry(130, 0.2, 26),
+        new THREE.MeshStandardMaterial({ color: 0xD6D3CD, roughness: 0.9 })
+      );
+      groundFloor.position.set(0, 0.1, -12);
+      groundFloor.receiveShadow = true;
+      terminalGroup.add(groundFloor);
+
+      // Solid fill behind the glass; hidden while the cutaway is open.
+      terminalFill = new THREE.Mesh(new THREE.BoxGeometry(126, 7.6, 0.4), clayMat);
+      terminalFill.position.set(0, 4.5, -0.6);
+      terminalGroup.add(terminalFill);
+
+      terminalGlassMat = new THREE.MeshPhysicalMaterial({
         color: PALETTE.glassBlue,
         metalness: 0.2,
         roughness: 0.15,
         transparent: true,
         opacity: 0.75,
-        reflectivity: 0.9
+        reflectivity: 0.9,
+        depthWrite: false
       });
-      const facadeGeo = new THREE.BoxGeometry(126, 7.5, 1.2);
-      const facade = new THREE.Mesh(facadeGeo, glassMat);
+      const facade = new THREE.Mesh(new THREE.BoxGeometry(126, 7.5, 1.2), terminalGlassMat);
       facade.position.set(0, 4.5, 0.5);
-      facade.castShadow = true;
       terminalGroup.add(facade);
 
-      const roofGeo = new THREE.BoxGeometry(134, 1.4, 30);
-      const roofMat = new THREE.MeshStandardMaterial({ color: 0xE2E8F0, roughness: 0.5 });
-      const roof = new THREE.Mesh(roofGeo, roofMat);
+      terminalRoofMat = new THREE.MeshStandardMaterial({ color: 0xE2E8F0, roughness: 0.5, transparent: true });
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(134, 1.4, 30), terminalRoofMat);
       roof.position.set(0, 9.4, -12);
       roof.castShadow = true;
       terminalGroup.add(roof);
+      terminalPickables.push(roof);
+      terminalRoofMesh = roof;
 
       const trimGeo = new THREE.BoxGeometry(134.4, 0.5, 0.8);
       const trimMat = new THREE.MeshBasicMaterial({ color: PALETTE.accent });
@@ -1581,6 +1701,7 @@
         hvac.position.set(rx, 11, -12);
         hvac.castShadow = true;
         terminalGroup.add(hvac);
+        terminalHvac.push(hvac);
       }
 
       const gatePositions = [-50, -25, 0, 25, 50];
@@ -1650,7 +1771,234 @@
         terminalGroup.add(towerGroup);
       });
 
+      buildTerminalInterior(terminalGroup);
+
+      const anchor = new THREE.Object3D();
+      anchor.position.set(0, 9, -12);
+      terminalGroup.add(anchor);
+      const terminalData = {
+        id: 'TERMINAL',
+        name: 'Main Terminal Building',
+        hudLabel: 'Terminal',
+        category: 'Facility',
+        type: 'Terminal',
+        stats: '3 floors · 2 lifts · 5 gates',
+        mesh: anchor
+      };
+      terminalPickables.forEach(m => { m.userData = terminalData; clickableObjects.push(m); });
+      entityRegistry.set('TERMINAL', terminalData);
+
       scene.add(terminalGroup);
+    }
+
+    /* --------------------------------------------------------------------------
+       TERMINAL INTERIOR: 3 floors (G, 1, 2), chairs, waiting centres, lifts
+       -------------------------------------------------------------------------- */
+    var terminalWallMat, terminalRoofMat, terminalGlassMat, terminalFill, terminalRoofMesh;
+    var terminalInterior = null, terminalHvac = [], terminalLifts = [], terminalCut = 0;
+    const TERMINAL_CENTER = new THREE.Vector3(0, 5, -12);
+    const TERMINAL_FLOORS = [
+      { label: 'G', y: 0.2 },
+      { label: '1', y: 3.1 },
+      { label: '2', y: 6.0 }
+    ];
+
+    function makeLabelSprite(text, widthUnits, color) {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 64;
+      const g = c.getContext('2d');
+      g.fillStyle = 'rgba(15,23,42,0.82)';
+      g.beginPath(); g.roundRect ? g.roundRect(4, 4, 248, 56, 14) : g.rect(4, 4, 248, 56); g.fill();
+      g.fillStyle = color || '#F8FAFC';
+      g.font = 'bold ' + Math.min(26, Math.floor(236 / (text.length * 0.64))) + 'px Arial, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(text, 128, 34);
+      const tex = new THREE.CanvasTexture(c);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+      sp.scale.set(widthUnits, widthUnits / 4, 1);
+      return sp;
+    }
+
+    // Lift floor indicator: a tall strip, one marker per real floor height, current floor lit.
+    function drawLiftIndicator(lift) {
+      const g = lift.ctx, W = 64, H = 512, top = 8.6, span = 8.4;
+      g.clearRect(0, 0, W, H);
+      g.fillStyle = 'rgba(15,23,42,0.85)'; g.fillRect(0, 0, W, H);
+      g.fillStyle = 'rgba(148,163,184,0.5)'; g.fillRect(30, 8, 4, H - 16);
+      TERMINAL_FLOORS.forEach((f, i) => {
+        const cy = (top - f.y) / span * H;
+        const here = lift.floorIdx === i && lift.state === 'dwell';
+        const near = lift.nearFloor === i;
+        g.fillStyle = here ? '#FF6A1A' : (near ? '#F59E0B' : '#334155');
+        g.fillRect(8, cy - 18, 48, 36);
+        g.fillStyle = '#fff'; g.font = 'bold 26px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(f.label, 32, cy + 1);
+      });
+      if (lift.state === 'move') {
+        g.fillStyle = '#FBBF24'; g.font = 'bold 22px Arial'; g.textAlign = 'center';
+        const cy = (top - lift.cab.position.y) / span * H;
+        g.fillText(lift.dir > 0 ? '▲' : '▼', 32, Math.min(H - 20, Math.max(20, cy - 34)));
+      }
+      lift.tex.needsUpdate = true;
+    }
+
+    function buildTerminalInterior(parent) {
+      const root = new THREE.Group();
+      terminalInterior = root;
+      parent.add(root);
+
+      // ---- upper floors (semi-transparent so lower floors stay readable) ----
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xE5E7EB, roughness: 0.85, transparent: true, opacity: 0.55, depthWrite: false });
+      const railMat = new THREE.MeshPhysicalMaterial({ color: 0x93C5FD, transparent: true, opacity: 0.3, depthWrite: false });
+      [1, 2].forEach(fi => {
+        const fy = TERMINAL_FLOORS[fi].y;
+        [-1, 1].forEach(sx => {
+          const slab = new THREE.Mesh(new THREE.BoxGeometry(53.8, 0.25, 14.8), slabMat);
+          slab.position.set(sx * 36.9, fy - 0.125, -16.4);
+          slab.receiveShadow = true;
+          root.add(slab);
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(53.8, 0.7, 0.08), railMat);
+          rail.position.set(sx * 36.9, fy + 0.35, -9.05);
+          root.add(rail);
+          const lab = makeLabelSprite(fi === 1 ? 'FLOOR 1 LOUNGE' : 'FLOOR 2 PREMIUM', 6.5, '#FDE68A');
+          lab.position.set(sx * 36.9, fy + 1.5, -9.4);
+          root.add(lab);
+        });
+      });
+
+      // ---- chairs (instanced) ----
+      const chairs = [];
+      const row = (x0, y, z, n, sp, color) => { for (let i = 0; i < n; i++) chairs.push([x0 + i * sp, y, z, color]); };
+      const BLUE = 0x3B82F6, AMBER = 0xF59E0B, TEAL = 0x14B8A6, ROSE = 0xFB7185;
+      [-50, -25, 0, 25, 50].forEach(gx => {                 // gate lounges, facing the apron
+        row(gx - 2.4, 0.2, -3.0, 6, 0.95, BLUE);
+        row(gx - 2.4, 0.2, -4.6, 6, 0.95, BLUE);
+      });
+      [-1, 1].forEach(sx => {
+        const x0 = sx < 0 ? -59 : 45.7;
+        for (let r = 0; r < 3; r++) row(x0, 0.2, -9 - r * 1.6, 14, 0.95, AMBER);     // waiting centres (G)
+        for (let r = 0; r < 3; r++) row(sx < 0 ? -58 : 43, TERMINAL_FLOORS[1].y, -12 - r * 1.6, 16, 0.95, TEAL);   // floor 1
+        for (let r = 0; r < 2; r++) row(sx < 0 ? -58 : 43, TERMINAL_FLOORS[2].y, -12 - r * 1.8, 16, 0.95, ROSE);   // floor 2
+      });
+
+      const seatGeo = new THREE.BoxGeometry(0.7, 0.12, 0.7);
+      const backGeo = new THREE.BoxGeometry(0.7, 0.65, 0.1);
+      const legGeo = new THREE.BoxGeometry(0.12, 0.5, 0.12);
+      const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
+      const seats = new THREE.InstancedMesh(seatGeo, white, chairs.length);
+      const backs = new THREE.InstancedMesh(backGeo, white, chairs.length);
+      const legs = new THREE.InstancedMesh(legGeo, new THREE.MeshStandardMaterial({ color: 0x334155 }), chairs.length);
+      const m4 = new THREE.Matrix4(), col = new THREE.Color();
+      chairs.forEach((c, i) => {
+        col.setHex(c[3]);
+        m4.makeTranslation(c[0], c[1] + 0.55, c[2]); seats.setMatrixAt(i, m4); seats.setColorAt(i, col);
+        m4.makeTranslation(c[0], c[1] + 0.9, c[2] - 0.3); backs.setMatrixAt(i, m4); backs.setColorAt(i, col);
+        m4.makeTranslation(c[0], c[1] + 0.25, c[2]); legs.setMatrixAt(i, m4);
+      });
+      [seats, backs, legs].forEach(m => { m.castShadow = false; root.add(m); });
+
+      // ---- check-in desks + info desk (ground floor) ----
+      const deskPos = [];
+      [-1, 1].forEach(sx => { for (let k = 0; k < 6; k++) deskPos.push(sx * (16 + k * 7)); });
+      const desks = new THREE.InstancedMesh(new THREE.BoxGeometry(5, 1.1, 1.4), new THREE.MeshStandardMaterial({ color: 0xCBD5E1 }), deskPos.length);
+      const tops = new THREE.InstancedMesh(new THREE.BoxGeometry(5.2, 0.1, 1.6), new THREE.MeshStandardMaterial({ color: 0x1E293B }), deskPos.length);
+      deskPos.forEach((x, i) => {
+        m4.makeTranslation(x, 0.75, -21); desks.setMatrixAt(i, m4);
+        m4.makeTranslation(x, 1.35, -21); tops.setMatrixAt(i, m4);
+      });
+      root.add(desks, tops);
+      [-34, 34].forEach(x => { const l = makeLabelSprite('CHECK-IN', 7, '#FFFFFF'); l.position.set(x, 3.4, -23.2); root.add(l); });
+
+      const info = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 1.1, 20), new THREE.MeshStandardMaterial({ color: 0xFF6A1A }));
+      info.position.set(0, 0.75, -15);
+      root.add(info);
+      const infoLab = makeLabelSprite('INFORMATION', 6.5, '#FFFFFF'); infoLab.position.set(0, 3.0, -15); root.add(infoLab);
+      [[-52, -9.0, 'WAITING CENTRE'], [52, -9.0, 'WAITING CENTRE']].forEach(w => {
+        const l = makeLabelSprite(w[2], 8, '#FDE68A'); l.position.set(w[0], 2.6, -13.8); root.add(l);
+      });
+      [-50, -25, 0, 25, 50].forEach((gx, i) => {
+        const l = makeLabelSprite('GATE A' + (i + 1), 5.2, '#93C5FD'); l.position.set(gx, 2.6, -2.2); root.add(l);
+      });
+
+      // ---- two glass lifts serving G / 1 / 2 ----
+      const glass = new THREE.MeshPhysicalMaterial({ color: 0x93C5FD, transparent: true, opacity: 0.16, depthWrite: false });
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+      [{ x: -8.6, name: 'LIFT A', start: 0 }, { x: 8.6, name: 'LIFT B', start: 2 }].forEach(cfg => {
+        const lz = -18;
+        const shaft = new THREE.Mesh(new THREE.BoxGeometry(2.4, 8.8, 2.4), glass);
+        shaft.position.set(cfg.x, 4.4, lz);
+        root.add(shaft);
+        [[-1.2, -1.2], [1.2, -1.2], [-1.2, 1.2], [1.2, 1.2]].forEach(c => {
+          const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 8.8, 0.12), frameMat);
+          post.position.set(cfg.x + c[0], 4.4, lz + c[1]);
+          root.add(post);
+        });
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.3, 2.0), new THREE.MeshStandardMaterial({ color: 0xFF6A1A, transparent: true, opacity: 0.88 }));
+        root.add(cab);
+
+        const cvs = document.createElement('canvas'); cvs.width = 64; cvs.height = 512;
+        const tex = new THREE.CanvasTexture(cvs);
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 7.6), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+        panel.position.set(cfg.x, 4.55, lz + 1.26);
+        root.add(panel);
+        const nm = makeLabelSprite(cfg.name, 3.2, '#FFFFFF'); nm.position.set(cfg.x, 9.6, lz); root.add(nm);
+
+        const lift = { cab: cab, ctx: cvs.getContext('2d'), tex: tex, floorIdx: cfg.start, dir: cfg.start === 2 ? -1 : 1,
+                       state: 'dwell', timer: 1 + cfg.start, nearFloor: -1 };
+        cab.position.set(cfg.x, TERMINAL_FLOORS[cfg.start].y + 1.15, lz);
+        drawLiftIndicator(lift);
+        terminalLifts.push(lift);
+      });
+
+      root.visible = false;
+    }
+
+    function updateLifts(dt) {
+      terminalLifts.forEach(l => {
+        const before = l.state + l.floorIdx + l.nearFloor;
+        if (l.state === 'dwell') {
+          l.timer -= dt;
+          if (l.timer <= 0) {
+            if (l.floorIdx + l.dir < 0 || l.floorIdx + l.dir > 2) l.dir = -l.dir;
+            l.target = l.floorIdx + l.dir;
+            l.state = 'move';
+          }
+        } else {
+          const ty = TERMINAL_FLOORS[l.target].y + 1.15;
+          const dy = ty - l.cab.position.y;
+          const step = Math.sign(dy) * Math.min(Math.abs(dy), 2.4 * dt);
+          l.cab.position.y += step;
+          l.nearFloor = l.target;
+          if (Math.abs(ty - l.cab.position.y) < 0.01) {
+            l.floorIdx = l.target; l.nearFloor = -1; l.state = 'dwell'; l.timer = 2.2;
+          }
+        }
+        // redraw the indicator when something visible changed (moving: ~8x per second)
+        l.acc = (l.acc || 0) + dt;
+        const changed = before !== (l.state + l.floorIdx + l.nearFloor);
+        if (changed || (l.state === 'move' && l.acc > 0.12)) { l.acc = 0; drawLiftIndicator(l); }
+      });
+    }
+
+    // Terminal cutaway: walls and roof fade near the camera or when the terminal is selected.
+    function updateTerminalCutaway(dt) {
+      if (!terminalRoofMat) return;
+      const sel = AppState.selectedObject;
+      const inspecting = !!sel && sel.id === 'TERMINAL';
+      const cut = inspecting || camera.position.distanceTo(TERMINAL_CENTER) < 100;
+      terminalCut += ((cut ? 1 : 0) - terminalCut) * Math.min(1, dt * 4);
+      const t = terminalCut;
+      terminalRoofMat.opacity = 1 - 0.94 * t;
+      terminalWallMat.opacity = 1 - 0.72 * t;
+      terminalGlassMat.opacity = 0.75 - 0.57 * t;
+      const solidRoof = t < 0.03;
+      terminalRoofMat.depthWrite = solidRoof;
+      terminalWallMat.depthWrite = t < 0.03;
+      terminalRoofMesh.castShadow = t < 0.5;
+      terminalFill.visible = t < 0.5;
+      terminalHvac.forEach(h => { h.visible = t < 0.5; });
+      terminalInterior.visible = t > 0.03;
+      if (terminalInterior.visible) updateLifts(dt);
     }
 
     /* --------------------------------------------------------------------------
@@ -2845,6 +3193,7 @@
 
       updateAirfield(delta);
       updateHangarCutaway(delta);
+      updateTerminalCutaway(delta);
 
       // ----------------------------------------------------------------------
       // CAMERA FOLLOW & TRANSITION (Using Scratch Vectors)
@@ -2992,9 +3341,9 @@
     let hudTagSize = { label: '', w: 140, h: 24 };
 
     function refreshHudObstacles() {
-      hudObstacles = ['top-bar', 'kpi-row', 'detail-panel', 'turnaround-panel', 'live-table-panel']
+      hudObstacles = ['top-bar', 'kpi-row', 'detail-panel', 'turnaround-panel', 'live-table-panel', 'mobile-tabs']
         .map(id => document.getElementById(id))
-        .filter(el => el && el.offsetParent !== null)
+        .filter(el => el && el.getClientRects().length > 0)
         .map(el => el.getBoundingClientRect());
     }
 
@@ -3176,6 +3525,7 @@
       setText('dp-status', status);
       ['dp-stand', 'dp-countdown', 'dp-fuel', 'dp-pax', 'dp-speed', 'dp-alt'].forEach((id, i) => setText(id, vals[i]));
 
+      if (AppState.interacted && isCompactLayout()) setSheet('detail');
       refreshHudObstacles();
       renderTableData(true);
     }
@@ -3201,6 +3551,42 @@
       }
     }
 
+    /* --------------------------------------------------------------------------
+       ADAPTIVE LAYOUT HELPERS
+       -------------------------------------------------------------------------- */
+    const COMPACT_MQ = window.matchMedia('(max-width: 820px), (max-height: 480px)');
+    function isCompactLayout() { return COMPACT_MQ.matches; }
+
+    function setSheet(name) {
+      document.body.dataset.sheet = name || 'none';
+      document.querySelectorAll('#mobile-tabs button[data-sheet]').forEach(b =>
+        b.classList.toggle('active', b.dataset.sheet === name));
+      refreshHudObstacles();
+    }
+    window.toggleSheet = function(name) { setSheet(document.body.dataset.sheet === name ? 'none' : name); };
+    window.toggleSearch = function() {
+      const open = document.body.classList.toggle('search-open');
+      if (open) { const i = document.getElementById('obj-search'); if (i) i.focus(); }
+    };
+
+    function syncTopBarHeight() {
+      const bar = document.getElementById('top-bar');
+      if (!bar) return;
+      document.documentElement.style.setProperty('--top-h', Math.round(bar.getBoundingClientRect().bottom) + 'px');
+    }
+
+    function setupResponsive() {
+      syncTopBarHeight();
+      const bar = document.getElementById('top-bar');
+      if (window.ResizeObserver && bar) new ResizeObserver(syncTopBarHeight).observe(bar);
+      const relayout = () => { syncTopBarHeight(); onWindowResize(); refreshHudObstacles(); };
+      window.addEventListener('resize', relayout);
+      window.addEventListener('orientationchange', () => setTimeout(relayout, 250));
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', relayout);
+      document.addEventListener('pointerdown', () => { AppState.interacted = true; }, { once: true, capture: true });
+      setSheet('none');
+    }
+
     function setupInteraction() {
       const CLICK_SLOP_PX = 5;
       let down = null;
@@ -3220,12 +3606,14 @@
       refreshHudObstacles();
       setInterval(refreshHudObstacles, 400);
       setInterval(() => renderTableData(false), 1000);
+      setupResponsive();
     }
 
     /* --------------------------------------------------------------------------
        WINDOW API HOOKS
        -------------------------------------------------------------------------- */
     window.flyToArea = function(areaKey, btn) {
+      if (isCompactLayout()) setSheet('none');
       // Keep the nav highlight in sync even when called without a button (search, KPI cards, API)
       document.querySelectorAll('.nav-btn').forEach(b => {
         const match = btn ? b === btn : (b.getAttribute('onclick') || '').includes(`'${areaKey}'`);
@@ -3335,6 +3723,7 @@
     };
 
     window.filterTable = function(tabName) {
+      if (isCompactLayout()) setSheet('table');
       const tabBtns = document.querySelectorAll('.table-tab-btn');
       tabBtns.forEach(btn => {
         if (btn.textContent.includes(tabName)) {
