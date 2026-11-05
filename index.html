@@ -1120,17 +1120,76 @@
     const entityRegistry = new Map();
     const aircraftList = [];
     const vehicleList = [];
+    /* --------------------------------------------------------------------------
+       AIRFIELD LAYOUT, HEADING CONVENTION & PATH FOLLOWING
+       Every aircraft and vehicle model is built with its nose/front on local +X.
+       three.js maps local +X to world (cos th, 0, -sin th) for rotation.y = th,
+       so the heading for a travel direction (dx, dz) is atan2(-dz, dx).
+       -------------------------------------------------------------------------- */
+    const LAYOUT = {
+      STAND_Z: 27,      // aircraft centre when parked, nose toward the terminal
+      LANE_Z: 56,       // apron taxilane centreline
+      LINK_X: 84,       // |x| of the two taxiway links to the runway
+      RWY_Z: -75,       // runway 09L centreline
+      PLANE_SCALE: 0.7
+    };
+    const H = { E: 0, S: -Math.PI / 2, W: Math.PI, N: Math.PI / 2 };
+    const TWO_PI = Math.PI * 2;
+    function headingFor(dx, dz) { return Math.atan2(-dz, dx); }
+    function angleDiff(from, to) { return ((to - from + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI; }
+    function turnToward(obj, target, rate, dt) {
+      const d = angleDiff(obj.rotation.y, target);
+      const step = Math.max(-rate * dt, Math.min(rate * dt, d));
+      obj.rotation.y += step;
+      return dt > 0 ? step / dt : 0;
+    }
+    // Polyline [[x,z],...] with rounded corners; returns sampled points + cumulative length.
+    function buildPath(pts, radius) {
+      const raw = [pts[0].slice()];
+      for (let i = 1; i < pts.length - 1; i++) {
+        const ax = pts[i - 1][0], az = pts[i - 1][1], px = pts[i][0], pz = pts[i][1], bx = pts[i + 1][0], bz = pts[i + 1][1];
+        const il = Math.hypot(px - ax, pz - az), ol = Math.hypot(bx - px, bz - pz);
+        const r = Math.min(radius, il / 2, ol / 2);
+        const ix = (px - ax) / il, iz = (pz - az) / il, ox = (bx - px) / ol, oz = (bz - pz) / ol;
+        const p1x = px - ix * r, p1z = pz - iz * r, p2x = px + ox * r, p2z = pz + oz * r;
+        for (let k = 0; k <= 10; k++) {
+          const t = k / 10, u = 1 - t;
+          raw.push([u * u * p1x + 2 * u * t * px + t * t * p2x, u * u * p1z + 2 * u * t * pz + t * t * p2z]);
+        }
+      }
+      raw.push(pts[pts.length - 1].slice());
+      const out = [raw[0]], cum = [0];
+      for (let i = 1; i < raw.length; i++) {
+        const last = out[out.length - 1];
+        const d = Math.hypot(raw[i][0] - last[0], raw[i][1] - last[1]);
+        if (d > 1e-6) { out.push(raw[i]); cum.push(cum[cum.length - 1] + d); }
+      }
+      return { pts: out, cum: cum, length: cum[cum.length - 1] };
+    }
+    function samplePath(path, s, out) {
+      const p = path.pts, c = path.cum;
+      s = Math.max(0, Math.min(path.length, s));
+      let i = 1;
+      while (i < p.length - 1 && c[i] < s) i++;
+      const seg = (c[i] - c[i - 1]) || 1;
+      const t = (s - c[i - 1]) / seg;
+      out.x = p[i - 1][0] + (p[i][0] - p[i - 1][0]) * t;
+      out.z = p[i - 1][1] + (p[i][1] - p[i - 1][1]) * t;
+      out.heading = headingFor(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]);
+      return out;
+    }
+
     const standList = [];
     const clickableObjects = [];
 
     // Area Camera Presets
     const AREA_VIEWS = {
       overview: { pos: [90, 85, 110], look: [0, 0, 0] },
-      terminal: { pos: [0, 36, 46], look: [0, 0, 0] },
+      terminal: { pos: [0, 40, 66], look: [0, 0, 16] },
       runway: { pos: [-80, 26, 62], look: [-80, 0, -20] },
-      cargo: { pos: [78, 30, -10], look: [75, 0, -15] },
-      hangar: { pos: [-68, 30, -32], look: [-60, 0, -40] },
-      landside: { pos: [0, 32, 86], look: [0, 0, 40] }
+      cargo: { pos: [128, 38, 70], look: [128, 0, 12] },
+      hangar: { pos: [-128, 30, -32], look: [-120, 0, -40] },
+      landside: { pos: [0, 32, 118], look: [0, 0, 72] }
     };
 
     /* --------------------------------------------------------------------------
@@ -1262,7 +1321,7 @@
       scene.add(ground);
 
       // Main Apron
-      const apronGeo = new THREE.PlaneGeometry(160, 85);
+      const apronGeo = new THREE.PlaneGeometry(160, 110);
       const apronMat = new THREE.MeshStandardMaterial({
         color: PALETTE.tarmac,
         roughness: 0.82,
@@ -1270,15 +1329,15 @@
       });
       const apron = new THREE.Mesh(apronGeo, apronMat);
       apron.rotation.x = -Math.PI / 2;
-      apron.position.set(0, 0.05, 10);
+      apron.position.set(0, 0.05, 23);
       apron.receiveShadow = true;
       scene.add(apron);
 
       // Cargo Apron Slab
-      const cargoApronGeo = new THREE.PlaneGeometry(60, 55);
+      const cargoApronGeo = new THREE.PlaneGeometry(64, 95);
       const cargoApron = new THREE.Mesh(cargoApronGeo, apronMat);
       cargoApron.rotation.x = -Math.PI / 2;
-      cargoApron.position.set(78, 0.05, -15);
+      cargoApron.position.set(128, 0.05, 12);
       cargoApron.receiveShadow = true;
       scene.add(cargoApron);
 
@@ -1288,27 +1347,27 @@
     function createTaxiwayMarkings() {
       const lineMat = new THREE.MeshBasicMaterial({ color: PALETTE.tarmacMarkings });
 
-      // Apron Taxiway Line (Z = 24)
-      const mainTaxiLineGeo = new THREE.PlaneGeometry(150, 0.5);
+      // Apron Taxiway Line (Z = LANE_Z)
+      const mainTaxiLineGeo = new THREE.PlaneGeometry(2 * LAYOUT.LINK_X, 0.5);
       const mainTaxiLine = new THREE.Mesh(mainTaxiLineGeo, lineMat);
       mainTaxiLine.rotation.x = -Math.PI / 2;
-      mainTaxiLine.position.set(0, 0.07, 24);
+      mainTaxiLine.position.set(0, 0.07, LAYOUT.LANE_Z);
       scene.add(mainTaxiLine);
 
-      // Stand lead-in lines (5 stands: A1 to A5 at z=8)
+      // Stand lead-in lines (5 stands: A1 to A5 at z = STAND_Z)
       const standXCoords = [-50, -25, 0, 25, 50];
       standXCoords.forEach((x, i) => {
-        const standLeadGeo = new THREE.PlaneGeometry(0.5, 17);
+        const standLeadGeo = new THREE.PlaneGeometry(0.5, LAYOUT.LANE_Z - LAYOUT.STAND_Z);
         const standLead = new THREE.Mesh(standLeadGeo, lineMat);
         standLead.rotation.x = -Math.PI / 2;
-        standLead.position.set(x, 0.07, 16);
+        standLead.position.set(x, 0.07, (LAYOUT.STAND_Z + LAYOUT.LANE_Z) / 2);
         scene.add(standLead);
 
         // Stand Stop-Bar
         const tBarGeo = new THREE.PlaneGeometry(6, 0.7);
         const tBar = new THREE.Mesh(tBarGeo, lineMat);
         tBar.rotation.x = -Math.PI / 2;
-        tBar.position.set(x, 0.07, 8);
+        tBar.position.set(x, 0.07, LAYOUT.STAND_Z - 9.5); // nose-wheel stop
         scene.add(tBar);
 
         // Canvas Stand Numbers
@@ -1336,7 +1395,7 @@
           id: `A${i+1}`,
           name: `Stand A${i+1}`,
           x: x,
-          z: 8,
+          z: LAYOUT.STAND_Z,
           occupied: i === 2,
           aircraft: i === 2 ? 'AI-742' : null,
           category: 'Stand'
@@ -1411,8 +1470,8 @@
         });
       }
 
-      buildTaxiwayLink(-70);
-      buildTaxiwayLink(70);
+      buildTaxiwayLink(-LAYOUT.LINK_X);
+      buildTaxiwayLink(LAYOUT.LINK_X);
     }
 
     function buildTaxiwayLink(xOffset) {
@@ -1533,6 +1592,7 @@
           name: `Gate A${idx + 1}`,
           category: 'Gate'
         };
+        gateData.mesh = jbGroup;
         jbGroup.userData = gateData;
         clickableObjects.push(cab);
         cab.userData = gateData;
@@ -1574,7 +1634,7 @@
     let radarDish;
     function buildControlTower() {
       const towerGroup = new THREE.Group();
-      towerGroup.position.set(-82, 0, 8);
+      towerGroup.position.set(-104, 0, 8);
 
       const clayMat = new THREE.MeshStandardMaterial({ color: PALETTE.clayWall, roughness: 0.7 });
 
@@ -1634,6 +1694,7 @@
         stats: "VHF 118.700 MHz • Ground 121.900 MHz"
       };
       clickableObjects.push(shaft);
+      towerGroup.userData.mesh = towerGroup;
       shaft.userData = towerGroup.userData;
       entityRegistry.set("TOWER", towerGroup.userData);
 
@@ -1648,7 +1709,7 @@
     function buildCargoAndHangar() {
       // 1. CARGO TERMINAL WAREHOUSE
       const cargoGroup = new THREE.Group();
-      cargoGroup.position.set(78, 0, -32);
+      cargoGroup.position.set(128, 0, -32);
 
       const whGeo = new THREE.BoxGeometry(45, 11, 24);
       const whMat = new THREE.MeshStandardMaterial({ color: 0xE2E8F0, roughness: 0.7 });
@@ -1690,24 +1751,25 @@
         stats: "Capacity: 1,200 Tonnes • Active ULDs: 480"
       };
       clickableObjects.push(wh);
+      cargoGroup.userData.mesh = cargoGroup;
       wh.userData = cargoGroup.userData;
       entityRegistry.set("CARGO", cargoGroup.userData);
       scene.add(cargoGroup);
 
       // 2. BOEING 777F CARGO FREIGHTER (Parked on Cargo Apron)
       cargoFreighter = createCargoFreighter('EK-992', 'A6-EFD', 'Emirates SkyCargo');
-      cargoFreighter.position.set(78, 0, -12);
-      cargoFreighter.rotation.y = 0; // Facing south towards apron
+      cargoFreighter.position.set(128, 0, 34);
+      cargoFreighter.rotation.y = H.N; // Nose toward the cargo terminal
       scene.add(cargoFreighter);
 
       // 3. CARGO FORKLIFT (Moving ULDs between warehouse and freighter)
       cargoForklift = createCargoForklift();
-      cargoForklift.position.set(78, 0, -17);
+      cargoForklift.position.set(128, 0, -3);
       scene.add(cargoForklift);
 
       // 4. OPEN MRO HANGAR (West Wing)
       const hangarGroup = new THREE.Group();
-      hangarGroup.position.set(-68, 0, -32);
+      hangarGroup.position.set(-128, 0, -32);
 
       const hwallMat = new THREE.MeshStandardMaterial({ color: PALETTE.clayWall, roughness: 0.7 });
       const bwall = new THREE.Mesh(new THREE.BoxGeometry(36, 14, 1.5), hwallMat);
@@ -1739,6 +1801,7 @@
         stats: "Bay 1: C-Check Inspection Active"
       };
       clickableObjects.push(bwall);
+      hangarGroup.userData.mesh = hangarGroup;
       bwall.userData = hangarGroup.userData;
       entityRegistry.set("HANGAR", hangarGroup.userData);
       scene.add(hangarGroup);
@@ -1921,7 +1984,7 @@
        -------------------------------------------------------------------------- */
     function buildLandsideForecourt() {
       const landsideGroup = new THREE.Group();
-      landsideGroup.position.set(0, 0, 48);
+      landsideGroup.position.set(0, 0, 80);
 
       const roadGeo = new THREE.PlaneGeometry(160, 22);
       const roadMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.85 });
@@ -2294,46 +2357,345 @@
     let plane1, plane2;
     let pushbackTug, baggageTrain, cateringTruck;
 
+    const Airfield = { runway: null, apron: null, time: 0, lastPanel: 0 };
+    const FLIGHT = { LIFT_S: 90, CRUISE_Y: 36, CRUISE_V: 34, FINAL_V: 18, SLOPE: 0.26, CLIMB: 0.28 };
+    const PUSH_END_Z = 40;
+    const TUG_DEPOT = { x: 14, z: 20 };
+    const _ps = { x: 0, z: 0, heading: 0 };
+
+    const ROUTES = {
+      _flight: null,
+      // Takeoff roll, right-hand circuit and final approach as one continuous path.
+      flight() {
+        return this._flight || (this._flight = buildPath([
+          [-70, LAYOUT.RWY_Z], [210, LAYOUT.RWY_Z], [210, 100], [-260, 100], [-260, LAYOUT.RWY_Z], [-100, LAYOUT.RWY_Z]
+        ], 45));
+      },
+      taxiOut(sx) {
+        return buildPath([[sx, PUSH_END_Z], [sx - 14, LAYOUT.LANE_Z], [-LAYOUT.LINK_X, LAYOUT.LANE_Z], [-LAYOUT.LINK_X, -58]], 14);
+      },
+      lineup() {
+        return buildPath([[-LAYOUT.LINK_X, -58], [-LAYOUT.LINK_X, LAYOUT.RWY_Z], [-70, LAYOUT.RWY_Z]], 8);
+      },
+      arrive(sx) {
+        return buildPath([
+          [-100, LAYOUT.RWY_Z], [LAYOUT.LINK_X, LAYOUT.RWY_Z], [LAYOUT.LINK_X, LAYOUT.LANE_Z], [sx, LAYOUT.LANE_Z], [sx, LAYOUT.STAND_Z]
+        ], 20);
+      }
+    };
+
+    function altitudeAt(path, s) {
+      const rem = path.length - s;
+      const climb = Math.max(0, s - FLIGHT.LIFT_S) * FLIGHT.CLIMB;
+      return Math.max(0, Math.min(climb, FLIGHT.CRUISE_Y, rem * FLIGHT.SLOPE));
+    }
+
+    function setupAircraft(ac, cfg) {
+      ac.rotation.order = 'YZX';              // yaw, then pitch about the lateral axis, then roll about the nose axis
+      ac.scale.setScalar(LAYOUT.PLANE_SCALE);
+      ac.sim = { standId: cfg.standId, standX: cfg.standX, turnTime: cfg.turnTime, path: null, s: 0, v: 0,
+                 stopAt: null, phase: null, accel: 2.5, decel: 3 };
+      ac.userData.assignedStand = cfg.standId;
+      ac.userData.stateTimer = 0;
+      aircraftList.push(ac);
+      scene.add(ac);
+    }
+
     function spawnSimulationEntities() {
-      // Aircraft 1: AI-742 (At Gate A3)
+      // Aircraft 1: AI-742 parked at Stand A3, nose toward the terminal
       plane1 = createProceduralA320('AI-742', 'VT-EXA', 'Air India', PALETTE.accent);
-      plane1.position.set(0, 0, 8);
-      plane1.rotation.set(0, 0, 0); // Facing south (+Z) towards taxiway
+      setupAircraft(plane1, { standId: 'A3', standX: 0, turnTime: 15 });
+      plane1.position.set(0, 0, LAYOUT.STAND_Z);
+      plane1.rotation.y = H.N;
       plane1.userData.state = 'TURNAROUND';
-      plane1.userData.stateTimer = 0;
-      plane1.userData.assignedStand = 'A3';
-      aircraftList.push(plane1);
-      scene.add(plane1);
 
-      // Aircraft 2: 6E-203 (Inbound on Final Approach)
+      // Aircraft 2: 6E-203 on the circuit, a few seconds from final approach
       plane2 = createProceduralA320('6E-203', 'VT-IFR', 'IndiGo', 0x0284C7);
-      plane2.position.set(-220, 32, -75);
-      plane2.rotation.set(0, Math.PI / 2, 0); // Heading East (090°)
-      plane2.userData.state = 'APPROACH';
-      plane2.userData.stateTimer = 0;
-      plane2.userData.assignedStand = 'A1';
-      aircraftList.push(plane2);
-      scene.add(plane2);
+      setupAircraft(plane2, { standId: 'A1', standX: -50, turnTime: 20 });
+      plane2.sim.path = ROUTES.flight();
+      plane2.sim.s = plane2.sim.path.length - 380;
+      plane2.sim.v = FLIGHT.CRUISE_V;
+      plane2.sim.phase = 'AIR';
+      samplePath(plane2.sim.path, plane2.sim.s, _ps);
+      plane2.position.set(_ps.x, altitudeAt(plane2.sim.path, plane2.sim.s), _ps.z);
+      plane2.rotation.y = _ps.heading;
+      plane2.gearGroup.position.y = 1.8;      // gear up
+      plane2.userData.state = 'CIRCUIT';
 
-      // Pushback Tug
+      // Pushback Tug (standing by beside the nose gear of A3)
       pushbackTug = createPushbackTug();
-      pushbackTug.position.set(0, 0, 18);
-      pushbackTug.rotation.y = 0;
+      pushbackTug.position.set(TUG_DEPOT.x, 0, TUG_DEPOT.z);
+      pushbackTug.rotation.y = H.S;
       vehicleList.push(pushbackTug);
       scene.add(pushbackTug);
 
       // Baggage Train
       baggageTrain = createBaggageTrain();
-      baggageTrain.position.set(32, 0, 20);
+      baggageTrain.position.set(34, 0, 36);
+      baggageTrain.rotation.y = H.E;
       vehicleList.push(baggageTrain);
       scene.add(baggageTrain);
 
-      // Catering Truck
+      // Catering Truck (rear service door of A3, starboard side)
       cateringTruck = createCateringTruck();
-      cateringTruck.position.set(-4, 0, 9);
-      cateringTruck.rotation.y = -Math.PI / 2;
+      cateringTruck.position.set(4.2, 0, LAYOUT.STAND_Z + 9.2);
+      cateringTruck.rotation.y = H.S;
       vehicleList.push(cateringTruck);
       scene.add(cateringTruck);
+    }
+
+    /* --------------------------------------------------------------------------
+       AIRCRAFT STATE MACHINE
+       TURNAROUND -> PUSHBACK -> PIVOT -> TAXI_TO_HOLD -> HOLD_SHORT -> LINEUP_TAKEOFF
+       -> CLIMB_DEPARTURE -> CIRCUIT -> APPROACH -> ROLLOUT -> TAXI_TO_GATE -> TURNAROUND
+       Runway and apron are single-owner resources, so aircraft never overlap.
+       -------------------------------------------------------------------------- */
+    function setState(ac, state, msg) {
+      ac.userData.state = state;
+      ac.userData.stateTimer = 0;
+      if (msg) window.triggerNotification(msg);
+    }
+
+    function setStand(id, occupied, flight) {
+      const st = standList.find(s => s.id === id);
+      if (st) { st.occupied = occupied; st.aircraft = flight; }
+    }
+
+    // Follow sim.path on the ground with smooth accel/brake; stops at sim.stopAt or the path end.
+    function followGround(ac, dt, vmax, stopAtEnd) {
+      const sim = ac.sim, path = sim.path;
+      const limit = sim.stopAt !== null ? sim.stopAt : path.length;
+      const remaining = limit - sim.s;
+      let target = vmax;
+      if (stopAtEnd || sim.stopAt !== null) target = Math.min(vmax, Math.sqrt(2 * sim.decel * Math.max(remaining, 0)) + 0.3);
+      if (remaining <= 0.05) target = 0;
+      sim.v += Math.max(-sim.decel * 1.5 * dt, Math.min(sim.accel * dt, target - sim.v));
+      sim.s = Math.min(limit, sim.s + sim.v * dt);
+      samplePath(path, sim.s, _ps);
+      ac.position.set(_ps.x, 0, _ps.z);
+      turnToward(ac, _ps.heading, 2.5, dt);
+      const k = Math.min(1, 4 * dt);
+      ac.rotation.z -= ac.rotation.z * k;     // settle pitch/bank after touchdown
+      ac.rotation.x -= ac.rotation.x * k;
+      if (ac.gearGroup) ac.gearGroup.position.y -= ac.gearGroup.position.y * k;
+      return remaining <= 0.05 && sim.v < 0.3;
+    }
+
+    // Takeoff roll, climb, circuit and final: heading from the path, pitch from the vertical profile, bank from the turn.
+    function flyStep(ac, dt) {
+      const u = ac.userData, sim = ac.sim, path = sim.path;
+      const rem = path.length - sim.s;
+      const onGround = sim.s < FLIGHT.LIFT_S;
+
+      let target = FLIGHT.CRUISE_V;
+      if (!onGround && rem <= 300) target = FLIGHT.FINAL_V + (FLIGHT.CRUISE_V - FLIGHT.FINAL_V) * (rem / 300);
+      if (!onGround && rem < 700) {
+        if (Airfield.runway === null && rem <= 320) Airfield.runway = ac;                // reserve runway for landing
+        else if (Airfield.runway !== null && Airfield.runway !== ac) target = Math.min(target, 22); // runway busy: slow down
+      }
+      if (Airfield.runway === ac && sim.s > FLIGHT.LIFT_S + 20 && rem > 320) Airfield.runway = null; // departure airborne
+
+      const accel = onGround ? 5 : 3;
+      sim.v += Math.max(-3 * dt, Math.min(accel * dt, target - sim.v));
+      sim.s = Math.min(path.length, sim.s + sim.v * dt);
+
+      samplePath(path, sim.s, _ps);
+      const y = altitudeAt(path, sim.s);
+      ac.position.set(_ps.x, y, _ps.z);
+      const yawRate = turnToward(ac, _ps.heading, 3, dt);
+
+      let pitchT = Math.atan2(altitudeAt(path, sim.s + 4) - y, 4);
+      if (path.length - sim.s < 22) pitchT = Math.max(pitchT, 0.05);                      // flare
+      const bankT = y > 1 ? Math.max(-0.5, Math.min(0.5, -yawRate * 0.6)) : 0;            // left turn = roll left
+      const k = Math.min(1, 3 * dt);
+      ac.rotation.z += (pitchT - ac.rotation.z) * k;
+      ac.rotation.x += (bankT - ac.rotation.x) * k;
+      if (ac.gearGroup) {
+        const gearUp = y > 3 && rem > 250;
+        ac.gearGroup.position.y += ((gearUp ? 1.8 : 0) - ac.gearGroup.position.y) * Math.min(1, 2 * dt);
+      }
+
+      if (u.state === 'LINEUP_TAKEOFF' && sim.s >= FLIGHT.LIFT_S) {
+        setState(ac, 'CLIMB_DEPARTURE', `${u.flightNum} airborne Runway 09L. Contact departure.`);
+      } else if (u.state === 'CLIMB_DEPARTURE' && sim.s > FLIGHT.LIFT_S + 230) {
+        setState(ac, 'CIRCUIT');
+      } else if (u.state === 'CIRCUIT' && rem < 320) {
+        setState(ac, 'APPROACH', `${u.flightNum} on final Runway 09L.`);
+      }
+
+      if (rem <= 0.1) {   // touchdown
+        const rp = ROUTES.arrive(sim.standX);
+        sim.path = rp;
+        sim.s = 0;
+        sim.stopAt = null;
+        for (let i = 0; i < rp.pts.length; i++) {
+          if (rp.pts[i][0] > LAYOUT.LINK_X - 1 && rp.pts[i][1] >= -12) { sim.stopAt = rp.cum[i]; break; }
+        }
+        ac.position.y = 0;
+        setState(ac, 'ROLLOUT', `${u.flightNum} touchdown Runway 09L. Decelerating.`);
+      }
+    }
+
+    function updateAircraft(ac, dt) {
+      const u = ac.userData, sim = ac.sim;
+      u.stateTimer += dt;
+
+      switch (u.state) {
+        case 'TURNAROUND':
+          if (ac === plane1) updateTurnaroundUI(u.stateTimer);
+          if (u.stateTimer > sim.turnTime && Airfield.apron === null) {
+            Airfield.apron = ac;
+            setStand(sim.standId, false, null);
+            setState(ac, 'PUSHBACK', `${u.flightNum} starting pushback from Stand ${sim.standId}. Ground crew clear.`);
+          }
+          break;
+
+        case 'PUSHBACK':   // tail-first, nose keeps pointing at the terminal
+          ac.position.z = Math.min(PUSH_END_Z, ac.position.z + 3 * dt);
+          if (ac.position.z >= PUSH_END_Z) {
+            sim.path = ROUTES.taxiOut(sim.standX);
+            sim.s = 0; sim.v = 0; sim.stopAt = null;
+            setState(ac, 'PIVOT');
+          }
+          break;
+
+        case 'PIVOT': {   // swing the nose onto the taxi route
+          samplePath(sim.path, 0, _ps);
+          turnToward(ac, _ps.heading, 0.9, dt);
+          if (Math.abs(angleDiff(ac.rotation.y, _ps.heading)) < 0.03) {
+            setState(ac, 'TAXI_TO_HOLD', `${u.flightNum} pushback completed. Taxiing via Alpha to Runway 09L.`);
+          }
+          break;
+        }
+
+        case 'TAXI_TO_HOLD': {
+          const arrived = followGround(ac, dt, 9, true);
+          if (Airfield.apron === ac && ac.position.x < -LAYOUT.LINK_X + 10 && ac.position.z < LAYOUT.LANE_Z - 25) Airfield.apron = null;
+          if (arrived) setState(ac, 'HOLD_SHORT');
+          break;
+        }
+
+        case 'HOLD_SHORT': {
+          const other = aircraftList.find(a => a !== ac);
+          const otherOnFinal = other && (other.userData.state === 'CIRCUIT' || other.userData.state === 'APPROACH') &&
+                               (other.sim.path.length - other.sim.s) < 450;
+          if (Airfield.runway === null && !otherOnFinal) {
+            Airfield.runway = ac;
+            sim.path = ROUTES.lineup();
+            sim.s = 0; sim.v = 0; sim.stopAt = null; sim.phase = 'LINEUP';
+            setState(ac, 'LINEUP_TAKEOFF', `${u.flightNum} lining up Runway 09L.`);
+          }
+          break;
+        }
+
+        case 'LINEUP_TAKEOFF':
+          if (sim.phase === 'LINEUP') {
+            if (followGround(ac, dt, 5, true)) {
+              sim.phase = 'ROLL';
+              sim.path = ROUTES.flight();
+              sim.s = 0; sim.v = 0;
+              window.triggerNotification(`${u.flightNum} cleared for takeoff Runway 09L. Wind 090/10kt.`);
+            }
+          } else {
+            flyStep(ac, dt);
+          }
+          break;
+
+        case 'CLIMB_DEPARTURE':
+        case 'CIRCUIT':
+        case 'APPROACH':
+          flyStep(ac, dt);
+          break;
+
+        case 'ROLLOUT':
+        case 'TAXI_TO_GATE': {
+          followGround(ac, dt, u.state === 'ROLLOUT' ? 10 : 9, true);
+          if (sim.stopAt !== null && Airfield.apron === null && sim.stopAt - sim.s < 40) {
+            Airfield.apron = ac;       // cleared into the apron
+            sim.stopAt = null;
+          }
+          if (Airfield.runway === ac && ac.position.z > LAYOUT.RWY_Z + 13) Airfield.runway = null; // vacated runway
+          if (u.state === 'ROLLOUT' && ac.position.x > 50) {
+            setState(ac, 'TAXI_TO_GATE', `${u.flightNum} vacated runway. Taxiing to Stand ${sim.standId}.`);
+          } else if (u.state === 'TAXI_TO_GATE' && sim.stopAt === null && sim.s >= sim.path.length - 0.1 && sim.v < 0.3) {
+            ac.position.set(sim.standX, 0, LAYOUT.STAND_Z);
+            ac.rotation.set(0, H.N, 0);
+            if (Airfield.apron === ac) Airfield.apron = null;
+            setStand(sim.standId, true, u.flightNum);
+            setState(ac, 'TURNAROUND', `${u.flightNum} on block at Stand ${sim.standId}. Chocks inserted.`);
+          }
+          break;
+        }
+      }
+
+      u.speed = Math.round(ac.position.y > 1 ? sim.v * 4.5 : sim.v * 2);   // knots (display scale)
+      u.altitude = Math.round(ac.position.y * 85);                          // feet AGL (display scale)
+    }
+
+    function updateVehicles(dt) {
+      const t = Airfield.time;
+
+      // Pushback tug: waits beside the nose gear, couples at pushback, then returns to its depot
+      if (pushbackTug) {
+        let tx = TUG_DEPOT.x, tz = TUG_DEPOT.z, attached = false;
+        for (const ac of aircraftList) {
+          if (ac.userData.state === 'PUSHBACK') { tx = ac.position.x; tz = ac.position.z - 10.2; attached = true; }
+          else if (ac.userData.state === 'TURNAROUND' && ac.userData.stateTimer > ac.sim.turnTime - 7) {
+            tx = ac.position.x + 6; tz = ac.position.z - 10.2;
+          }
+        }
+        const dx = tx - pushbackTug.position.x, dz = tz - pushbackTug.position.z, d = Math.hypot(dx, dz);
+        if (attached && d < 1.2) {
+          pushbackTug.position.x = tx; pushbackTug.position.z = tz;
+          turnToward(pushbackTug, H.S, 6, dt);
+        } else if (d > 0.15) {
+          const step = Math.min(d, 14 * dt);
+          pushbackTug.position.x += dx / d * step;
+          pushbackTug.position.z += dz / d * step;
+          turnToward(pushbackTug, headingFor(dx, dz), 6, dt);
+        } else {
+          turnToward(pushbackTug, H.S, 6, dt);
+        }
+      }
+
+      // Baggage train: shuttles along the service road behind the stands, nose always forward
+      if (baggageTrain) {
+        const ph = t * 0.45;
+        baggageTrain.position.x = 34 + Math.sin(ph) * 12;
+        baggageTrain.position.z = 36;
+        turnToward(baggageTrain, Math.cos(ph) >= 0 ? H.E : H.W, 5, dt);
+      }
+
+      // Catering hi-lift: raises while the A3 aircraft is turning around
+      if (cateringTruck && cateringTruck.liftBox) {
+        const serving = plane1.userData.state === 'TURNAROUND';
+        const ty = serving ? 2.8 + Math.sin(plane1.userData.stateTimer * 0.8) * 1.4 : 2.0;
+        cateringTruck.liftBox.position.y += (ty - cateringTruck.liftBox.position.y) * Math.min(1, 3 * dt);
+      }
+
+      // Cargo forklift: shuttles between the warehouse apron and the freighter nose
+      if (cargoForklift) {
+        const ph = t * 0.8;
+        cargoForklift.position.z = -3 + Math.sin(ph) * 3;
+        turnToward(cargoForklift, Math.cos(ph) >= 0 ? H.S : H.N, 5, dt);
+        if (cargoForklift.mastGroup) cargoForklift.mastGroup.position.y = 0.5 + Math.sin(t * 1.5) * 1.2;
+      }
+    }
+
+    function updateAirfield(dt) {
+      Airfield.time += dt;
+      aircraftList.forEach(ac => updateAircraft(ac, dt));
+      updateVehicles(dt);
+
+      // Live readout for the selected aircraft (4 Hz)
+      const sel = AppState.selectedObject;
+      if (sel && sel.mesh && sel.mesh.sim && Airfield.time - Airfield.lastPanel > 0.25) {
+        Airfield.lastPanel = Airfield.time;
+        const spd = document.getElementById('dp-speed'), alt = document.getElementById('dp-alt'), st = document.getElementById('dp-status');
+        if (spd) spd.textContent = `${sel.speed} kts`;
+        if (alt) alt.textContent = `${sel.altitude} ft ${sel.altitude < 10 ? '(GND)' : '(AGL)'}`;
+        if (st) st.textContent = sel.state;
+      }
     }
 
     /* --------------------------------------------------------------------------
@@ -2414,234 +2776,12 @@
         }
       });
 
-      // ----------------------------------------------------------------------
-      // AIRCRAFT 1: AI-742 (Full Flight Cycle: Pushback -> Taxi -> Takeoff -> Circuit -> Landing)
-      // ----------------------------------------------------------------------
-      const a1 = plane1;
-      a1.userData.stateTimer += delta;
-
-      if (a1.userData.state === 'TURNAROUND') {
-        const t = a1.userData.stateTimer;
-        updateTurnaroundUI(t);
-
-        if (cateringTruck && cateringTruck.liftBox) {
-          cateringTruck.liftBox.position.y = 2.8 + Math.sin(t * 0.8) * 1.4;
-        }
-
-        if (t > 15) {
-          a1.userData.state = 'PUSHBACK';
-          a1.userData.stateTimer = 0;
-          window.triggerNotification('AI-742 starting pushback from Stand A3. Ground crew clear.');
-        }
-      } else if (a1.userData.state === 'PUSHBACK') {
-        // Smooth pushback arc out of Gate A3 onto taxiway (Z = 24)
-        if (a1.position.z < 24) {
-          a1.position.z += delta * 2.2;
-          pushbackTug.position.z = a1.position.z + 8;
-          // Slight turn during final push
-          if (a1.position.z > 16) {
-            a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, -Math.PI / 2, delta * 1.5);
-          }
-        } else {
-          a1.rotation.y = -Math.PI / 2; // Facing West towards Taxiway link
-          a1.userData.state = 'TAXI_TO_HOLD';
-          a1.userData.stateTimer = 0;
-          // Pushback tug returns to depot
-          pushbackTug.position.set(6, 0, 18);
-          pushbackTug.rotation.y = 0;
-          window.triggerNotification('AI-742 pushback completed. Taxiing via Alpha to Runway 09L.');
-        }
-      } else if (a1.userData.state === 'TAXI_TO_HOLD') {
-        // Taxi along Apron Taxiway (Z = 24) westwards to Taxiway Link (X = -70)
-        if (a1.position.x > -70) {
-          a1.position.x -= delta * 6.5;
-          a1.rotation.y = -Math.PI / 2;
-        } else if (a1.position.z > -75) {
-          // Turn right (heading North) onto West Taxiway link to runway
-          a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, 0, delta * 3);
-          a1.position.z -= delta * 6.5;
-        } else {
-          // Holding point reached -> Lineup
-          a1.userData.state = 'LINEUP_TAKEOFF';
-          a1.position.set(-70, 0, -75);
-          a1.rotation.set(0, Math.PI / 2, 0); // Align with Runway 09L (East)
-          window.triggerNotification('AI-742 cleared for immediate takeoff Runway 09L. Wind 090/10kt.');
-        }
-      } else if (a1.userData.state === 'LINEUP_TAKEOFF') {
-        // Ground Roll Acceleration along Runway Centerline (Z = -75)
-        a1.position.x += delta * 24;
-        a1.position.z = -75;
-
-        // Rotation & Lift-off at X = 10
-        if (a1.position.x > 10) {
-          a1.position.y += delta * 9;
-          a1.rotation.z = -0.18; // Pitch up
-          // Retract landing gear
-          if (a1.gearGroup) a1.gearGroup.position.y = Math.max(-2, a1.gearGroup.position.y - delta * 2.5);
-        }
-
-        // Climb-out and Departure Turn
-        if (a1.position.x > 110) {
-          a1.userData.state = 'CLIMB_DEPARTURE';
-          a1.userData.stateTimer = 0;
-        }
-      } else if (a1.userData.state === 'CLIMB_DEPARTURE') {
-        // Climbing right-hand bank into traffic pattern
-        a1.position.x += delta * 18;
-        a1.position.y = Math.min(45, a1.position.y + delta * 8);
-        a1.rotation.x = THREE.MathUtils.lerp(a1.rotation.x, 0.28, delta * 2); // Bank right
-        a1.rotation.y += delta * 0.45; // Turn right
-        a1.position.z += delta * 12;
-
-        if (a1.position.x > 210) {
-          a1.userData.state = 'CIRCUIT';
-          a1.userData.stateTimer = 0;
-        }
-      } else if (a1.userData.state === 'CIRCUIT') {
-        // High altitude holding/traffic pattern loop
-        const ct = a1.userData.stateTimer;
-        const radius = 140;
-        a1.position.x = Math.sin(ct * 0.35) * radius;
-        a1.position.z = Math.cos(ct * 0.35) * 60 - 75;
-        a1.position.y = 45;
-        a1.rotation.y = ct * 0.35 + Math.PI / 2;
-        a1.rotation.x = 0.2; // Bank angle
-        a1.rotation.z = 0;
-
-        if (ct > 16) {
-          // Re-enter Final Approach
-          a1.position.set(-240, 35, -75);
-          a1.rotation.set(0, Math.PI / 2, 0);
-          if (a1.gearGroup) a1.gearGroup.position.y = 0;
-          a1.userData.state = 'APPROACH';
-          a1.userData.stateTimer = 0;
-        }
-      } else if (a1.userData.state === 'APPROACH') {
-        // 3-degree Glide slope descent straight down Runway 09L centerline
-        a1.position.x += delta * 18;
-        a1.position.z = -75;
-        a1.position.y = Math.max(0, a1.position.y - delta * 3.2);
-        a1.rotation.set(0, Math.PI / 2, -0.04); // Shallow glide angle
-
-        // Touchdown at X = -90
-        if (a1.position.y <= 0.05 && a1.position.x >= -90) {
-          a1.position.y = 0;
-          a1.rotation.z = 0;
-          a1.userData.state = 'ROLLOUT';
-          window.triggerNotification('AI-742 touchdown Runway 09L. Thrust reversers deployed.');
-        }
-      } else if (a1.userData.state === 'ROLLOUT') {
-        // Deceleration down runway to East exit (X = 70)
-        a1.position.x += delta * 14;
-        a1.position.z = -75;
-        if (a1.position.x >= 70) {
-          a1.userData.state = 'TAXI_TO_GATE';
-          a1.position.x = 70;
-        }
-      } else if (a1.userData.state === 'TAXI_TO_GATE') {
-        // Realistic Taxi Route: East Taxiway (South along Z) -> Apron (West along X) -> Stand A3
-        if (a1.position.z < 24) {
-          // Rolling south along taxiway link
-          a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, 0, delta * 3);
-          a1.position.z += delta * 6;
-        } else if (a1.position.x > 0) {
-          // Turning right (heading West) along main apron taxiway
-          a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, -Math.PI / 2, delta * 3);
-          a1.position.x -= delta * 6;
-        } else if (a1.position.z > 8) {
-          // Turning right (heading North) into Stand A3 lead-in
-          a1.rotation.y = THREE.MathUtils.lerp(a1.rotation.y, -Math.PI, delta * 3);
-          a1.position.z -= delta * 4;
-        } else {
-          // Docked at Stand A3
-          a1.position.set(0, 0, 8);
-          a1.rotation.set(0, 0, 0); // Facing south (+Z)
-          a1.userData.state = 'TURNAROUND';
-          a1.userData.stateTimer = 0;
-          window.triggerNotification('AI-742 on block at Stand A3. Chocks inserted.');
-        }
-      }
-
-      // ----------------------------------------------------------------------
-      // AIRCRAFT 2: 6E-203 (IndiGo) — Realistic Approach & Docking
-      // ----------------------------------------------------------------------
-      const a2 = plane2;
-      if (a2.userData.state === 'APPROACH') {
-        a2.position.x += delta * 16;
-        a2.position.z = -75;
-        a2.position.y = Math.max(0, a2.position.y - delta * 2.8);
-        a2.rotation.set(0, Math.PI / 2, -0.03);
-
-        if (a2.position.y <= 0.05 && a2.position.x >= -90) {
-          a2.position.y = 0;
-          a2.rotation.z = 0;
-          a2.userData.state = 'ROLLOUT';
-          window.triggerNotification('IndiGo 6E-203 touchdown Runway 09L.');
-        }
-      } else if (a2.userData.state === 'ROLLOUT') {
-        a2.position.x += delta * 12;
-        a2.position.z = -75;
-        if (a2.position.x >= 70) {
-          a2.userData.state = 'TAXI_TO_GATE';
-          a2.position.x = 70;
-        }
-      } else if (a2.userData.state === 'TAXI_TO_GATE') {
-        if (a2.position.z < 24) {
-          a2.rotation.y = THREE.MathUtils.lerp(a2.rotation.y, 0, delta * 3);
-          a2.position.z += delta * 5.5;
-        } else if (a2.position.x > -50) {
-          a2.rotation.y = THREE.MathUtils.lerp(a2.rotation.y, -Math.PI / 2, delta * 3);
-          a2.position.x -= delta * 5.5;
-        } else if (a2.position.z > 8) {
-          a2.rotation.y = THREE.MathUtils.lerp(a2.rotation.y, -Math.PI, delta * 3);
-          a2.position.z -= delta * 3.5;
-        } else {
-          a2.position.set(-50, 0, 8);
-          a2.rotation.set(0, 0, 0);
-          a2.userData.state = 'TURNAROUND';
-          a2.userData.stateTimer = 0;
-          window.triggerNotification('IndiGo 6E-203 docked at Stand A1.');
-        }
-      } else if (a2.userData.state === 'TURNAROUND') {
-        a2.userData.stateTimer += delta;
-        if (a2.userData.stateTimer > 20) {
-          a2.position.set(-240, 35, -75);
-          a2.rotation.set(0, Math.PI / 2, 0);
-          a2.userData.state = 'APPROACH';
-          a2.userData.stateTimer = 0;
-        }
-      }
-
-      // ----------------------------------------------------------------------
-      // CARGO FORKLIFT MOVEMENT (Between Cargo Warehouse and Freighter)
-      // ----------------------------------------------------------------------
-      if (cargoForklift) {
-        const fTime = Date.now() * 0.001;
-        const fCycle = (Math.sin(fTime * 0.8) + 1) * 0.5; // 0 to 1
-        // Move between warehouse (Z = -22) and freighter (Z = -12)
-        cargoForklift.position.z = -22 + fCycle * 10;
-        cargoForklift.rotation.y = Math.cos(fTime * 0.8) > 0 ? 0 : Math.PI;
-
-        // Animate lifting tines
-        if (cargoForklift.mastGroup) {
-          cargoForklift.mastGroup.position.y = 0.5 + Math.sin(fTime * 1.5) * 1.2;
-        }
-      }
-
-      // ----------------------------------------------------------------------
-      // BAGGAGE TUG PATROL
-      // ----------------------------------------------------------------------
-      if (baggageTrain) {
-        baggageTrain.position.x = 20 + Math.sin(Date.now() * 0.0006) * 35;
-        baggageTrain.rotation.y = Math.sin(Date.now() * 0.0006) > 0 ? 0 : Math.PI;
-      }
+      updateAirfield(delta);
 
       // ----------------------------------------------------------------------
       // CAMERA FOLLOW & TRANSITION (Using Scratch Vectors)
       // ----------------------------------------------------------------------
-      if (AppState.cameraFollowing && AppState.selectedObject) {
-        const mesh = AppState.selectedObject.mesh || AppState.selectedObject;
-        mesh.getWorldPosition(_scratchTargetWorldPos);
+      if (AppState.cameraFollowing && AppState.selectedObject && getEntityWorldPos(AppState.selectedObject, _scratchTargetWorldPos)) {
         controls.target.lerp(_scratchTargetWorldPos, 0.08);
 
         _scratchVec1.set(_scratchTargetWorldPos.x + 28, _scratchTargetWorldPos.y + 24, _scratchTargetWorldPos.z + 36);
@@ -2757,19 +2897,41 @@
     /* --------------------------------------------------------------------------
        FLOATING 3D HUD & SELECTION (Zero garbage collection)
        -------------------------------------------------------------------------- */
+    // Resolve the world position of ANY selectable entity into `out`.
+    // Aircraft/vehicles/facilities expose `.mesh` (Object3D); stands are plain
+    // data with x/z. Returns false when no position can be resolved, so callers
+    // never throw inside the render loop.
+    function getEntityWorldPos(entity, out) {
+      if (!entity) return false;
+      const obj = entity.mesh || entity.anchor;
+      if (obj && typeof obj.getWorldPosition === 'function') {
+        obj.getWorldPosition(out);
+        return true;
+      }
+      if (typeof entity.getWorldPosition === 'function') {
+        entity.getWorldPosition(out);
+        return true;
+      }
+      if (typeof entity.x === 'number' && typeof entity.z === 'number') {
+        out.set(entity.x, 0, entity.z);
+        return true;
+      }
+      return false;
+    }
+
     function updateFloatingHUD() {
       const hud = document.getElementById('hud-anchor');
-      if (!AppState.selectedObject) {
+      if (!AppState.selectedObject || !getEntityWorldPos(AppState.selectedObject, _scratchTargetWorldPos)) {
         hud.style.display = 'none';
         return;
       }
 
-      const target = AppState.selectedObject.mesh || AppState.selectedObject;
-      target.getWorldPosition(_scratchTargetWorldPos);
       _scratchTargetWorldPos.y += 4.5;
 
       _scratchScreenPos.copy(_scratchTargetWorldPos).project(camera);
-      if (_scratchScreenPos.z < 1) {
+      const onScreen = _scratchScreenPos.z < 1 &&
+        Math.abs(_scratchScreenPos.x) <= 1.05 && Math.abs(_scratchScreenPos.y) <= 1.05;
+      if (onScreen) {
         const x = (_scratchScreenPos.x * 0.5 + 0.5) * window.innerWidth;
         const y = (-(_scratchScreenPos.y * 0.5) + 0.5) * window.innerHeight;
         hud.style.left = `${x}px`;
