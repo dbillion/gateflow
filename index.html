@@ -1078,9 +1078,9 @@
   <!-- BOTTOM RIGHT: TABBED LIVE TABLE -->
   <div id="live-table-panel" class="glass">
     <div class="table-tabs">
-      <button class="table-tab-btn active" onclick="window.switchTableTab('Stands', this)">Stands (5)</button>
-      <button class="table-tab-btn" onclick="window.switchTableTab('Vehicles', this)">Vehicles (12)</button>
-      <button class="table-tab-btn" onclick="window.switchTableTab('Flights', this)">Flights (10)</button>
+      <button class="table-tab-btn active" onclick="window.switchTableTab('Stands', this)">Stands</button>
+      <button class="table-tab-btn" onclick="window.switchTableTab('Vehicles', this)">Vehicles</button>
+      <button class="table-tab-btn" onclick="window.switchTableTab('Flights', this)">Flights</button>
     </div>
 
     <div class="table-scroll" id="table-content-area"></div>
@@ -1288,7 +1288,7 @@
 
       // 11. Clocks & Tables
       setInterval(updateClock, 1000);
-      renderTableData();
+      renderTableData(true);
 
       // Default Selection
       if (aircraftList.length > 0) {
@@ -2135,6 +2135,14 @@
     /* --------------------------------------------------------------------------
        PROCEDURAL A320neo AIRFRAME
        -------------------------------------------------------------------------- */
+    // Per-flight data (origin, pax, fuel): each aircraft carries its own values.
+    var FLIGHT_META = {
+      'ET-742': { origin: 'ADD', pax: 168, fuel: 14.2 },
+      'KQ-203': { origin: 'NBO', pax: 152, fuel: 12.6 },
+      'MRO-01': { origin: 'ADD', pax: 0,   fuel: 0 },
+      default:  { origin: 'ADD', pax: 150, fuel: 13.0 }
+    };
+
     function createProceduralA320(flightNum, reg, airline, liveryColor) {
       const plane = new THREE.Group();
 
@@ -2280,9 +2288,9 @@
         assignedStand: 'A3',
         speed: 0,
         altitude: 0,
-        fuel: 14.2,
-        pax: 168,
-        origin: 'ADD',
+        fuel: (FLIGHT_META[flightNum] || FLIGHT_META.default).fuel,
+        pax: (FLIGHT_META[flightNum] || FLIGHT_META.default).pax,
+        origin: (FLIGHT_META[flightNum] || FLIGHT_META.default).origin,
         dest: 'OLU',
         mesh: plane
       };
@@ -3077,7 +3085,7 @@
        DETAIL PANEL (every field is rewritten per category: nothing goes stale)
        -------------------------------------------------------------------------- */
     const CITY_NAMES = { ADD: 'Addis Ababa', NBO: 'Nairobi', CAI: 'Cairo', LOS: 'Lagos', IST: 'Istanbul', DXB: 'Dubai', OLU: "Oludayo's" };
-    const SCHEDULES = { 'ET-742': ['18:10', '18:55'] };
+    const SCHEDULES = { 'ET-742': ['18:10', '18:55'], 'KQ-203': ['18:35', '19:10'] };
     const DETAIL_LABELS = {
       Aircraft: ['Assigned Stand', 'Turnaround', 'Fuel Onboard', 'Pax Load', 'Ground Speed', 'Altitude'],
       Vehicle:  ['Zone', 'Task', 'Battery', 'Payload', 'Speed', 'Type'],
@@ -3169,7 +3177,7 @@
       ['dp-stand', 'dp-countdown', 'dp-fuel', 'dp-pax', 'dp-speed', 'dp-alt'].forEach((id, i) => setText(id, vals[i]));
 
       refreshHudObstacles();
-      renderTableData();
+      renderTableData(true);
     }
 
     /* --------------------------------------------------------------------------
@@ -3211,6 +3219,7 @@
 
       refreshHudObstacles();
       setInterval(refreshHudObstacles, 400);
+      setInterval(() => renderTableData(false), 1000);
     }
 
     /* --------------------------------------------------------------------------
@@ -3322,7 +3331,7 @@
       AppState.currentTab = tabName;
       document.querySelectorAll('.table-tab-btn').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
-      renderTableData();
+      renderTableData(true);
     };
 
     window.filterTable = function(tabName) {
@@ -3417,55 +3426,99 @@
       }
     }
 
-    function renderTableData() {
-      const container = document.getElementById('table-content-area');
-      let html = '';
+    // ---- Live tables: every row is read from the running simulation, so the
+    // tables, tab counts, selected row and detail panel can never disagree. ----
+    var INBOUND_STATES = ['CIRCUIT', 'APPROACH', 'ROLLOUT', 'TAXI_TO_GATE'];
+    var AIR_STATE_LABEL = {
+      TURNAROUND: ['Turnaround', 'var(--accent)'],
+      PUSHBACK: ['Pushback', 'var(--status-orange)'],
+      PIVOT: ['Departing', 'var(--status-orange)'],
+      TAXI_TO_HOLD: ['Taxi out', 'var(--status-blue)'],
+      HOLD_SHORT: ['Holding', 'var(--status-blue)'],
+      LINEUP_TAKEOFF: ['Take-off', 'var(--status-green)'],
+      CLIMB_DEPARTURE: ['Climb-out', 'var(--status-green)'],
+      CIRCUIT: ['Inbound', 'var(--status-orange)'],
+      APPROACH: ['Final', 'var(--status-orange)'],
+      ROLLOUT: ['Landing', 'var(--status-orange)'],
+      TAXI_TO_GATE: ['Taxi in', 'var(--status-blue)'],
+      STANDBY: ['Standby', 'var(--text-secondary)'],
+      'LOADING ULD': ['Loading', 'var(--status-orange)']
+    };
 
-      if (AppState.currentTab === 'Stands') {
-        html = `
-          <table class="ops-table">
-            <thead>
-              <tr><th>Stand</th><th>Flight</th><th>Airline</th><th>Aircraft</th><th>Status</th><th>Turnaround</th></tr>
-            </thead>
-            <tbody>
-              <tr onclick="window.focusStand('A1')"><td><b>A1</b></td><td>KQ-203</td><td>Kenya Airways</td><td>A320neo</td><td><span style="color:var(--status-orange)">● Inbound</span></td><td>18:40</td></tr>
-              <tr onclick="window.focusStand('A2')"><td><b>A2</b></td><td>P4-315</td><td>Air Peace</td><td>A320-200</td><td><span style="color:var(--status-green)">● Ready</span></td><td>18:50</td></tr>
-              <tr class="selected" onclick="window.focusStand('A3')"><td><b>A3</b></td><td>ET-742</td><td>Ethiopian Airlines</td><td>A320neo</td><td><span style="color:var(--accent)">● Turnaround</span></td><td>18:43</td></tr>
-              <tr onclick="window.focusStand('A4')"><td><b>A4</b></td><td>TK-816</td><td>Turkish Airlines</td><td>B737-800</td><td><span style="color:var(--status-blue)">● Boarding</span></td><td>18:30</td></tr>
-              <tr onclick="window.selectEntityById('EK-992')"><td><b>C1 (Cargo)</b></td><td>EK-992</td><td>SkyCargo</td><td>B777F</td><td><span style="color:var(--status-orange)">● Loading</span></td><td>19:20</td></tr>
-            </tbody>
-          </table>
-        `;
-      } else if (AppState.currentTab === 'Vehicles') {
-        html = `
-          <table class="ops-table">
-            <thead>
-              <tr><th>ID</th><th>Type</th><th>Zone</th><th>Speed</th><th>Battery</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              <tr onclick="window.selectEntityById('T-01')"><td><b>T-01</b></td><td>Pushback Tug</td><td>Stand A3</td><td>8 kts</td><td>94%</td><td><span style="color:var(--accent)">Active</span></td></tr>
-              <tr onclick="window.selectEntityById('BT-04')"><td><b>BT-04</b></td><td>Baggage Tug</td><td>Apron Inner</td><td>12 kts</td><td>88%</td><td><span style="color:var(--status-green)">Moving</span></td></tr>
-              <tr onclick="window.selectEntityById('CT-02')"><td><b>CT-02</b></td><td>Catering Hi-Lift</td><td>Stand A3</td><td>0 kts</td><td>91%</td><td><span style="color:var(--status-orange)">Docked</span></td></tr>
-              <tr onclick="window.selectEntityById('FL-01')"><td><b>FL-01</b></td><td>Cargo Forklift</td><td>Cargo Hub</td><td>6 kts</td><td>96%</td><td><span style="color:var(--status-green)">Loading ULD</span></td></tr>
-              <tr><td><b>FP-07</b></td><td>Fuel Hydrant Dispenser</td><td>Stand A3</td><td>0 kts</td><td>100%</td><td><span style="color:var(--status-green)">Pumping</span></td></tr>
-            </tbody>
-          </table>
-        `;
-      } else if (AppState.currentTab === 'Flights') {
-        html = `
-          <table class="ops-table">
-            <thead>
-              <tr><th>Flight</th><th>Route</th><th>STD/STA</th><th>Gate</th><th>Pax</th><th>Fuel</th></tr>
-            </thead>
-            <tbody>
-              <tr class="selected" onclick="window.selectEntityById('ET-742')"><td><b>ET-742</b></td><td>ADD ➔ OLU</td><td>18:12 / 18:45</td><td>A3</td><td>168</td><td>14.2 t</td></tr>
-              <tr onclick="window.selectEntityById('KQ-203')"><td><b>KQ-203</b></td><td>NBO ➔ OLU</td><td>18:35 / 19:10</td><td>A1</td><td>174</td><td>15.8 t</td></tr>
-              <tr onclick="window.selectEntityById('EK-992')"><td><b>EK-992</b></td><td>DXB ➔ OLU</td><td>17:30 / 18:15</td><td>C1 (Cargo)</td><td>0</td><td>48.0 t</td></tr>
-              <tr><td><b>MS-821</b></td><td>CAI ➔ OLU</td><td>18:50 / 19:30</td><td>A2</td><td>152</td><td>13.6 t</td></tr>
-            </tbody>
-          </table>
-        `;
+    function liveFleet() {
+      const fleet = aircraftList.map(a => a);
+      if (typeof cargoFreighter !== 'undefined' && cargoFreighter) fleet.push(cargoFreighter);
+      return fleet;
+    }
+
+    function stateBadge(state) {
+      const l = AIR_STATE_LABEL[state] || [String(state || '—'), 'var(--text-secondary)'];
+      return `<span style="color:${l[1]}">● ${l[0]}</span>`;
+    }
+
+    var lastTableHtml = '';
+    function renderTableData(force) {
+      const container = document.getElementById('table-content-area');
+      if (!container) return;
+      // Live refresh pauses while the pointer is over the table so rows never move under a click.
+      if (!force && lastTableHtml && container.matches(':hover')) return;
+      const sel = AppState.selectedObject;
+      const selId = sel ? sel.id : null;
+      const tr = (id, click, selected, cells) =>
+        `<tr${selected ? ' class="selected"' : ''} onclick="${click}">${cells.map((c, i) => `<td>${i === 0 ? `<b>${c}</b>` : c}</td>`).join('')}</tr>`;
+
+      // Rows for each tab (also used for the tab counts).
+      const standRows = standList.map(st => {
+        let ac = st.occupied ? aircraftList.find(a => a.userData.flightNum === st.aircraft) : null;
+        if (!ac) ac = aircraftList.find(a => a.userData.assignedStand === st.id && INBOUND_STATES.includes(a.userData.state));
+        const u = ac ? ac.userData : null;
+        const busy = !!u && (st.occupied || INBOUND_STATES.includes(u.state));
+        const status = busy ? stateBadge(u.state) : '<span style="color:var(--status-green)">● Free</span>';
+        const left = busy && u.state === 'TURNAROUND' ? `T-${Math.max(0, Math.ceil(ac.sim.turnTime - u.stateTimer))} min` : '—';
+        return tr(st.id, `window.focusStand('${st.id}')`, selId === st.id || (busy && selId === u.id),
+          [st.id, busy ? u.flightNum : '—', busy ? u.airline : '—', busy ? (u.type || 'A320neo') : '—', status, left]);
+      });
+      if (typeof cargoFreighter !== 'undefined' && cargoFreighter) {
+        const u = cargoFreighter.userData;
+        standRows.push(tr('C1 (Cargo)', `window.selectEntityById('${u.id}')`, selId === u.id,
+          ['C1 (Cargo)', u.flightNum, u.airline, 'B777F', '<span style="color:var(--status-orange)">● Loading</span>', '—']));
       }
+
+      const vehicles = [pushbackTug, baggageTrain, cateringTruck, cargoForklift].filter(Boolean).map(m => m.userData);
+      const vehicleRows = vehicles.map(u => {
+        const info = VEHICLE_INFO[u.id] || {};
+        return tr(u.id, `window.selectEntityById('${u.id}')`, selId === u.id,
+          [u.id, u.type || 'Vehicle', info.zone || '—', `${u.speed || 0} kts`, info.battery || '—',
+           `<span style="color:var(--accent)">${info.task || 'Active'}</span>`]);
+      });
+
+      const flightRows = liveFleet().map(a => {
+        const u = a.userData;
+        const gate = u.assignedStand ? u.assignedStand : 'C1 (Cargo)';
+        const cargoOnly = /777F/.test(u.type || '');
+        return tr(u.flightNum, `window.selectEntityById('${u.id}')`, selId === u.id,
+          [u.flightNum, `${u.origin || '—'} ➔ ${u.dest || 'OLU'}`, stateBadge(u.state || (cargoOnly ? 'STANDBY' : '')),
+           gate, cargoOnly ? '0' : (u.pax != null ? u.pax : '—'), u.fuel != null ? `${u.fuel} t` : '—']);
+      });
+
+      // Tab labels always match the rows shown.
+      const counts = { Stands: standList.length + (cargoFreighter ? 1 : 0), Vehicles: vehicleRows.length, Flights: flightRows.length };
+      document.querySelectorAll('.table-tab-btn').forEach(btn => {
+        const name = (btn.getAttribute('onclick') || '').match(/'(\w+)'/);
+        if (name && counts[name[1]] != null) btn.textContent = `${name[1]} (${counts[name[1]]})`;
+      });
+
+      let html = '';
+      if (AppState.currentTab === 'Stands') {
+        html = `<table class="ops-table"><thead><tr><th>Stand</th><th>Flight</th><th>Airline</th><th>Aircraft</th><th>Status</th><th>Turnaround</th></tr></thead><tbody>${standRows.join('')}</tbody></table>`;
+      } else if (AppState.currentTab === 'Vehicles') {
+        html = `<table class="ops-table"><thead><tr><th>ID</th><th>Type</th><th>Zone</th><th>Speed</th><th>Battery</th><th>Task</th></tr></thead><tbody>${vehicleRows.join('')}</tbody></table>`;
+      } else if (AppState.currentTab === 'Flights') {
+        html = `<table class="ops-table"><thead><tr><th>Flight</th><th>Route</th><th>State</th><th>Gate</th><th>Pax</th><th>Fuel</th></tr></thead><tbody>${flightRows.join('')}</tbody></table>`;
+      }
+      // Skip no-op rewrites and never swap rows under a mouse press (keeps clicks reliable).
+      if (html === lastTableHtml) return;
+      lastTableHtml = html;
       container.innerHTML = html;
     }
 
